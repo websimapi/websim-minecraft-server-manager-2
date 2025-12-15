@@ -121,7 +121,7 @@ bedrock:
   validate-bedrock-login: false
 
 java:
-  auth-type: ${this.config.geyserAuthType || 'offline'}
+  auth-type: ${this.config.enableFloodgate ? 'floodgate' : (this.config.geyserAuthType || 'offline')}
 
 motd:
   primary-motd: Geyser
@@ -184,10 +184,12 @@ config-version: 5
         }
 
         // Update Auth Type
-        // Respect explicit config choice first, fallback to 'offline' for LAN stability if not set
+        // FORCE floodgate auth if floodgate is enabled, regardless of drop-down selection
         let desiredAuthType = this.config.geyserAuthType;
-        if (!desiredAuthType) {
-            desiredAuthType = 'offline'; // Default to offline for LAN stability as requested
+        if (this.config.enableFloodgate) {
+            desiredAuthType = 'floodgate';
+        } else if (!desiredAuthType) {
+            desiredAuthType = 'offline'; // Default to offline for LAN stability
         }
 
         const remoteBlockRegex = /(java:[\s\S]*?auth-type:\s*)(['"]?)(\w+)(['"]?)/;
@@ -198,8 +200,21 @@ config-version: 5
             if (currentAuth !== desiredAuthType) {
                 configContent = configContent.replace(remoteBlockRegex, `$1${desiredAuthType}`);
                 changed = true;
-                this.broadcast({ type: 'notification', message: `Updated Geyser auth-type to: ${desiredAuthType}`, level: 'info' });
+                this.broadcast({ type: 'notification', message: `Enforcing Geyser auth-type: ${desiredAuthType}`, level: 'success' });
             }
+        }
+        
+        // Ensure allow-third-party-capes is false (Recommended for preventing login prompt issues)
+        const capesRegex = /(allow-third-party-capes:\s*)(true|false)/;
+        if (capesRegex.test(configContent)) {
+             if (configContent.match(/(allow-third-party-capes:\s*)true/)) {
+                 configContent = configContent.replace(capesRegex, '$1false');
+                 changed = true;
+             }
+        } else {
+             // Append to bedrock section if missing
+             configContent = configContent.replace(/(bedrock:[\s\S]*?port:.*)/, '$1\n  allow-third-party-capes: false');
+             changed = true;
         }
 
         // Ensure validate-bedrock-login is false for LAN if auth-type is offline
@@ -223,7 +238,7 @@ config-version: 5
             this.broadcast({ type: 'notification', message: 'Geyser configuration updated.', level: 'success' });
         }
 
-        // Auto-fix: Copy key.pem from Floodgate to Geyser if missing
+        // Auto-fix: Copy key.pem from Floodgate to Geyser if missing OR if files differ
         if (this.config.enableFloodgate) {
             const geyserKeyPath = path.join(path.dirname(geyserConfigPath), 'key.pem');
             
@@ -235,13 +250,28 @@ config-version: 5
             
             const existingKeyPath = floodgateKeyPaths.find(p => fs.existsSync(p));
             
-            if (existingKeyPath && !fs.existsSync(geyserKeyPath)) {
-                try {
-                    fs.copyFileSync(existingKeyPath, geyserKeyPath);
-                    this.broadcast({ type: 'notification', message: 'Copied key.pem from Floodgate to Geyser folder.', level: 'success' });
-                } catch (e) {
-                    console.error('Failed to copy key.pem:', e);
+            if (existingKeyPath) {
+                let doCopy = false;
+                if (!fs.existsSync(geyserKeyPath)) {
+                    doCopy = true;
+                } else {
+                    try {
+                         const srcStat = fs.statSync(existingKeyPath);
+                         const dstStat = fs.statSync(geyserKeyPath);
+                         if (srcStat.size !== dstStat.size) doCopy = true;
+                    } catch(e) { doCopy = true; }
                 }
+
+                if (doCopy) {
+                    try {
+                        fs.copyFileSync(existingKeyPath, geyserKeyPath);
+                        this.broadcast({ type: 'notification', message: 'Synced key.pem from Floodgate to Geyser folder.', level: 'success' });
+                    } catch (e) {
+                        console.error('Failed to copy key.pem:', e);
+                    }
+                }
+            } else {
+                this.broadcast({ type: 'notification', message: 'Waiting for Floodgate to generate key.pem (server restart may be needed).', level: 'info' });
             }
         }
 
