@@ -282,6 +282,11 @@
                                     </select>
                                 </div>
                                 <div class="form-group">
+                                    <label>Minecraft Version (Paper)</label>
+                                    <input type="text" id="minecraftVersionInput" placeholder="latest or 1.21.4" value="1.21.4">
+                                    <small class="text-muted">Set to "latest" or specific version like "1.21.4". Restart required.</small>
+                                </div>
+                                <div class="form-group">
                                     <label>Max Players</label>
                                     <input type="number" id="maxPlayersInput" min="1" max="100" value="20">
                                 </div>
@@ -309,6 +314,11 @@
                                 <div class="form-group" id="floodgateGroup">
                                     <label>Enable Floodgate (Bedrock Offline-Mode)</label>
                                     <input type="checkbox" id="enableFloodgateCheck">
+                                </div>
+                                <div class="form-group">
+                                    <label>Enable ViaVersion (Version Bridge)</label>
+                                    <input type="checkbox" id="enableViaVersionCheck">
+                                    <small class="text-muted">Allows clients on different versions to connect. Recommended.</small>
                                 </div>
                                 <button class="btn btn-primary" id="saveSettingsBtn">
                                     <i class="fas fa-save"></i>

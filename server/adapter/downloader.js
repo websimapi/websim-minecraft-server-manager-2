@@ -51,20 +51,31 @@ module.exports.downloadVanillaServer = async function() {
 
 module.exports.downloadPaperServer = async function() {
     try {
-        this.broadcast({ type: 'notification', message: 'Downloading latest PaperMC server...', level: 'info' });
+        this.broadcast({ type: 'notification', message: 'Checking PaperMC versions...', level: 'info' });
         const projectUrl       = this.downloadConfig.paper.apiUrl;
         const versionsResponse = await fetch(projectUrl);
         const versionsData     = await versionsResponse.json();
-        const latestVersion    = versionsData.versions[versionsData.versions.length - 1];
-        const buildsResponse   = await fetch(`${projectUrl}/versions/${latestVersion}`);
+        
+        let targetVersion = this.config.minecraftVersion;
+        if (!targetVersion || targetVersion === 'latest') {
+            targetVersion = versionsData.versions[versionsData.versions.length - 1];
+        }
+
+        if (!versionsData.versions.includes(targetVersion)) {
+             throw new Error(`Version ${targetVersion} not found in Paper versions list.`);
+        }
+
+        this.broadcast({ type: 'notification', message: `Downloading PaperMC version ${targetVersion}...`, level: 'info' });
+
+        const buildsResponse   = await fetch(`${projectUrl}/versions/${targetVersion}`);
         const buildsData       = await buildsResponse.json();
         const latestBuild      = buildsData.builds[buildsData.builds.length - 1];
-        const jarName          = `paper-${latestVersion}-${latestBuild}.jar`;
-        const downloadUrl      = `${projectUrl}/versions/${latestVersion}/builds/${latestBuild}/downloads/${jarName}`;
+        const jarName          = `paper-${targetVersion}-${latestBuild}.jar`;
+        const downloadUrl      = `${projectUrl}/versions/${targetVersion}/builds/${latestBuild}/downloads/${jarName}`;
 
         this.config.serverJar = jarName;
         const serverJarPath   = path.join(this.config.minecraftDir, this.config.serverJar);
-
+        
         await this.downloadFile(downloadUrl, serverJarPath);
         return serverJarPath;
     } catch (error) {
@@ -115,6 +126,36 @@ module.exports.downloadFloodgatePlugin = async function(forceUpdate = false) {
     } catch (error) {
         console.error('Failed to download Floodgate plugin:', error);
         this.broadcast({ type: 'error', message: `Failed to download Floodgate: ${error.message}` });
+    }
+};
+
+module.exports.downloadViaVersionPlugin = async function(forceUpdate = false) {
+    const pluginsDir = path.join(this.config.minecraftDir, 'plugins');
+    const viaJarPath = path.join(pluginsDir, this.downloadConfig.viaversion.filename);
+
+    if (fs.existsSync(viaJarPath)) {
+        if (!forceUpdate) return;
+        try {
+            fs.unlinkSync(viaJarPath);
+        } catch(e) { console.error(e); }
+    }
+
+    try {
+        this.broadcast({ type: 'notification', message: 'Fetching ViaVersion info...', level: 'info' });
+        const verRes = await fetch(this.downloadConfig.viaversion.apiUrl);
+        if (!verRes.ok) throw new Error('Failed to fetch ViaVersion info');
+        const verData = await verRes.json();
+        
+        // verData is a list of versions. [0] is latest.
+        const latest = verData[0];
+        const file = latest.files.find(f => f.primary) || latest.files[0];
+        
+        if (!file || !file.url) throw new Error('No download URL found for ViaVersion');
+
+        await this.downloadFile(file.url, viaJarPath);
+    } catch (error) {
+        console.error('Failed to download ViaVersion:', error);
+        this.broadcast({ type: 'error', message: `Failed to download ViaVersion: ${error.message}` });
     }
 };
 

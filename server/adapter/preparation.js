@@ -37,5 +37,10 @@ module.exports.preparePlugins = async function() {
             await this.downloadFloodgatePlugin(forceUpdate);
         }
     }
+    
+    if (this.config.enableViaVersion) {
+        const forceUpdate = this.config.autoUpdateGeyser !== false;
+        await this.downloadViaVersionPlugin(forceUpdate);
+    }
 };
 

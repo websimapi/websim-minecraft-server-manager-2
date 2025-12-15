@@ -11,13 +11,16 @@ let serverConfig = {
     bedrockServerExecutable: 'bedrock_server',
     maxRam: '2G',
     serverType: 'java', // 'java' or 'bedrock'
+    minecraftVersion: '1.21.4', // specific version or 'latest'
     autoStart: false,
     /* @tweakable Enable Geyser to allow Bedrock clients to connect */
     enableGeyser: false,
     /* @tweakable Automatically update Geyser/Floodgate on server start to match server version */
     autoUpdateGeyser: true,
     /* @tweakable Enable Floodgate to allow Bedrock clients without a Java account */
-    enableFloodgate: false
+    enableFloodgate: false,
+    /* @tweakable Enable ViaVersion to allow older/newer client connections */
+    enableViaVersion: false
 };
 
 const configPath = path.join(__dirname, 'config.json');
@@ -57,6 +60,11 @@ const downloadConfig = {
         downloadUrl: 'https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot',
         /* @tweakable Filename for the downloaded Floodgate plugin JAR. */
         filename: 'floodgate-spigot.jar'
+    },
+    /* @tweakable ViaVersion download settings */
+    viaversion: {
+        apiUrl: 'https://api.modrinth.com/v2/project/viaversion/version',
+        filename: 'ViaVersion.jar'
     }
 };
 
