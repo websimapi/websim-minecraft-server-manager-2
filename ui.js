@@ -53,20 +53,23 @@ function bindEventListeners() {
 
     const geyserCheck = document.getElementById('enableGeyserCheck');
     const floodgateGroup = document.getElementById('floodgateGroup');
+    const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
     
-    const toggleFloodgate = () => {
+    const toggleGeyserOptions = () => {
         if (geyserCheck.checked) {
             floodgateGroup.style.display = 'flex';
+            autoUpdateGeyserGroup.style.display = 'flex';
         } else {
             floodgateGroup.style.display = 'none';
+            autoUpdateGeyserGroup.style.display = 'none';
             floodgateCheck.checked = false;
         }
     };
 
-    geyserCheck.addEventListener('change', toggleFloodgate);
+    geyserCheck.addEventListener('change', toggleGeyserOptions);
     // Initial state
-    toggleFloodgate();
+    toggleGeyserOptions();
 }
 
 export function initialize(api) {

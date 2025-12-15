@@ -111,6 +111,7 @@ export function saveSettings() {
         ram: parseInt(document.getElementById('ramInput').value, 10),
         autoStart: document.getElementById('autoStartCheck').checked,
         enableGeyser: document.getElementById('enableGeyserCheck').checked,
+        autoUpdateGeyser: document.getElementById('autoUpdateGeyserCheck').checked,
         enableFloodgate: document.getElementById('enableFloodgateCheck').checked
     };
 

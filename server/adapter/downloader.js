@@ -74,10 +74,20 @@ module.exports.downloadPaperServer = async function() {
     }
 };
 
-module.exports.downloadGeyserPlugin = async function() {
+module.exports.downloadGeyserPlugin = async function(forceUpdate = false) {
     const pluginsDir    = path.join(this.config.minecraftDir, 'plugins');
     const geyserJarPath = path.join(pluginsDir, this.downloadConfig.geyser.filename);
-    if (fs.existsSync(geyserJarPath)) return;
+    
+    if (fs.existsSync(geyserJarPath)) {
+        if (!forceUpdate) return;
+        try {
+            this.broadcast({ type: 'notification', message: 'Removing old Geyser plugin...', level: 'info' });
+            fs.unlinkSync(geyserJarPath); 
+        } catch (e) {
+            console.error('Failed to delete old Geyser:', e);
+        }
+    }
+
     try {
         await this.downloadFile(this.downloadConfig.geyser.downloadUrl, geyserJarPath);
     } catch (error) {
@@ -86,10 +96,20 @@ module.exports.downloadGeyserPlugin = async function() {
     }
 };
 
-module.exports.downloadFloodgatePlugin = async function() {
+module.exports.downloadFloodgatePlugin = async function(forceUpdate = false) {
     const pluginsDir       = path.join(this.config.minecraftDir, 'plugins');
     const floodgateJarPath = path.join(pluginsDir, this.downloadConfig.floodgate.filename);
-    if (fs.existsSync(floodgateJarPath)) return;
+    
+    if (fs.existsSync(floodgateJarPath)) {
+        if (!forceUpdate) return;
+        try {
+            this.broadcast({ type: 'notification', message: 'Removing old Floodgate plugin...', level: 'info' });
+            fs.unlinkSync(floodgateJarPath);
+        } catch (e) {
+            console.error('Failed to delete old Floodgate:', e);
+        }
+    }
+
     try {
         await this.downloadFile(this.downloadConfig.floodgate.downloadUrl, floodgateJarPath);
     } catch (error) {

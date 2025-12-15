@@ -29,9 +29,12 @@ module.exports.preparePlugins = async function() {
         fs.mkdirSync(pluginsDir, { recursive: true });
     }
     if (this.config.enableGeyser) {
-        await this.downloadGeyserPlugin();
+        // Auto-update if configured (default true) to prevent version mismatch errors
+        const forceUpdate = this.config.autoUpdateGeyser !== false;
+        
+        await this.downloadGeyserPlugin(forceUpdate);
         if (this.config.enableFloodgate) {
-            await this.downloadFloodgatePlugin();
+            await this.downloadFloodgatePlugin(forceUpdate);
         }
     }
 };
