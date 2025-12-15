@@ -10,6 +10,7 @@ const updater          = require('./adapter/updater.js');
 class MinecraftAdapter {
     constructor(broadcastCallback) {
         this.broadcast       = broadcastCallback;
+        this.serverInstance  = null;
         this.config          = serverConfig;
         this.downloadConfig  = downloadConfig;
         this.minecraftProcess= null;
@@ -22,6 +23,10 @@ class MinecraftAdapter {
             tps:     '20.0'
         };
         this.startTime       = null;
+    }
+
+    setServerInstance(instance) {
+        this.serverInstance = instance;
     }
 }
 

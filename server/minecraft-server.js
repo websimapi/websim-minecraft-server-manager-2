@@ -15,6 +15,7 @@ class MinecraftServer {
         this.wss = null;
         
         this.minecraft = new MinecraftAdapter(this.broadcastMessage.bind(this));
+        this.minecraft.setServerInstance(this);
 
         this.initialize();
     }
