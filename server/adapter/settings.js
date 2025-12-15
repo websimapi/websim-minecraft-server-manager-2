@@ -111,19 +111,62 @@ module.exports.configureGeyser = function() {
         const dir = path.dirname(geyserConfigPath);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-        // Minimal config that Geyser will respect and hydrate
+        // User requested robust default config for LAN/Offline
         const defaultConfig = `
 bedrock:
   address: 0.0.0.0
   port: ${this.config.geyserPort || 19132}
-remote:
-  address: 127.0.0.1
-  port: ${this.config.mcPort || 25565}
-  auth-type: ${this.config.geyserAuthType || (this.config.enableFloodgate ? 'floodgate' : 'online')}
+  clone-remote-port: false
+  # Security risk: Disables Bedrock auth. Required for LAN without Xbox.
+  validate-bedrock-login: false
+
+java:
+  auth-type: ${this.config.geyserAuthType || 'offline'}
+
+motd:
+  primary-motd: Geyser
+  secondary-motd: Another Geyser server.
+  passthrough-motd: true
+  max-players: 100
+  passthrough-player-counts: true
+  integrated-ping-passthrough: true
+  ping-passthrough-interval: 3
+
+gameplay:
+  server-name: Geyser
+  show-cooldown: title
+  command-suggestions: true
+  show-coordinates: true
+  disable-bedrock-scaffolding: false
+  nether-roof-workaround: false
+  emotes-enabled: true
+  unusable-space-block: minecraft:barrier
+  enable-custom-content: true
+  force-resource-packs: true
+  enable-integrated-pack: true
+  forward-player-ping: false
+  xbox-achievements-enabled: false
+  max-visible-custom-skulls: 128
+  custom-skull-render-distance: 32
+
+default-locale: system
+log-player-ip-addresses: true
+
+notify-on-new-bedrock-update: true
+
+advanced:
+  floodgate-key-file: key.pem
+  java:
+    use-direct-connection: true
+    disable-compression: true
+  bedrock:
+    compression-level: 6
+
+debug-mode: false
+config-version: 5
 `;
         fs.writeFileSync(geyserConfigPath, defaultConfig.trim());
-        this.broadcast({ type: 'notification', message: 'Created minimal Geyser config.', level: 'success' });
-        // We just created it with correct values, no need to parse/edit immediately unless logic below finds discrepancies
+        this.broadcast({ type: 'notification', message: 'Created optimized Geyser config (LAN mode).', level: 'success' });
     }
 
     try {
@@ -141,36 +184,38 @@ remote:
         }
 
         // Update Auth Type
-        // If Floodgate is enabled, we prioritize 'floodgate' auth type to allow the hybrid setup.
+        // Respect explicit config choice first, fallback to 'offline' for LAN stability if not set
         let desiredAuthType = this.config.geyserAuthType;
-        if (this.config.enableFloodgate) {
-            desiredAuthType = 'floodgate';
-        } else if (!desiredAuthType) {
-            desiredAuthType = 'online';
+        if (!desiredAuthType) {
+            desiredAuthType = 'offline'; // Default to offline for LAN stability as requested
         }
 
-        // Robust Regex: Look for 'remote:' block, then 'auth-type:' inside it.
-        const remoteBlockRegex = /(remote:[\s\S]*?auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+        const remoteBlockRegex = /(java:[\s\S]*?auth-type:\s*)(['"]?)(\w+)(['"]?)/;
         const match = configContent.match(remoteBlockRegex);
 
         if (match) {
             const currentAuth = match[3];
             if (currentAuth !== desiredAuthType) {
-                // We use '$1' + desiredAuthType to preserve indentation and keys, replacing the value. 
-                // We intentionally drop the quotes (groups 2 and 4) from replacement to ensure clean value.
                 configContent = configContent.replace(remoteBlockRegex, `$1${desiredAuthType}`);
                 changed = true;
                 this.broadcast({ type: 'notification', message: `Updated Geyser auth-type to: ${desiredAuthType}`, level: 'info' });
             }
-        } else {
-             // Fallback: search for simple "auth-type: value" if remote block match fails
-             const simpleAuthRegex = /(auth-type:\s*)(['"]?)(\w+)(['"]?)/;
-             const simpleMatch = configContent.match(simpleAuthRegex);
-             if (simpleMatch && simpleMatch[3] !== desiredAuthType) {
-                 configContent = configContent.replace(simpleAuthRegex, `$1${desiredAuthType}`);
+        }
+
+        // Ensure validate-bedrock-login is false for LAN if auth-type is offline
+        if (desiredAuthType === 'offline') {
+            const validateRegex = /(validate-bedrock-login:\s*)(true|false)/;
+            if (validateRegex.test(configContent)) {
+                 if (configContent.match(/(validate-bedrock-login:\s*)true/)) {
+                     configContent = configContent.replace(validateRegex, '$1false');
+                     changed = true;
+                 }
+            } else {
+                 // If missing, add it to bedrock section
+                 const bedrockSection = /(bedrock:[\s\S]*?port:.*)/;
+                 configContent = configContent.replace(bedrockSection, '$1\n  validate-bedrock-login: false');
                  changed = true;
-                 this.broadcast({ type: 'notification', message: `Updated Geyser auth-type (fallback) to: ${desiredAuthType}`, level: 'info' });
-             }
+            }
         }
 
         if (changed) {
@@ -219,39 +264,39 @@ module.exports.configureFloodgate = function() {
     let configPath = possiblePaths.find(p => fs.existsSync(p));
     let created = false;
 
-    // Create default config if missing to prevent startup errors or race conditions
+    // Create default config if missing
     if (!configPath) {
         configPath = path.join(this.config.minecraftDir, 'plugins', 'floodgate', 'config.yml');
         const pluginsDir = path.dirname(configPath);
         if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
 
-        const ips = this.config.floodgateAllowedIps || [];
-        const allowedIpsBlock = ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []';
-
+        // User requested specific Floodgate default for LAN
         const defaultConfig = 
-`# Floodgate Configuration (Generated by Manager)
-key-file-name: key.pem
+`key-file-name: key.pem
 username-prefix: "."
 replace-spaces: true
-allowed-ips:${allowedIpsBlock}
+
 disconnect:
   invalid-key: Please connect through the official Geyser
   invalid-arguments-length: Expected {} arguments, got {}. Is Geyser up-to-date?
+
 player-link:
   enabled: false
   require-link: false
   enable-own-linking: false
+  enable-global-linking: false
   allowed: true
   link-code-timeout: 300
   type: sqlite
-  enable-global-linking: true
+
 metrics:
   enabled: true
   uuid: 77816080-e990-4351-8afc-7a614ab87feb
+
 config-version: 3
 `;
         fs.writeFileSync(configPath, defaultConfig);
-        this.broadcast({ type: 'notification', message: 'Created default Floodgate configuration.', level: 'success' });
+        this.broadcast({ type: 'notification', message: 'Created default Floodgate configuration (LAN).', level: 'success' });
         created = true;
     }
 
@@ -259,7 +304,7 @@ config-version: 3
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
-        // 1. Fix known corruption artifacts
+        // 1. Fix known corruption artifacts (cleanup)
         let corruptionFixed = false;
 
         // Case A: concatenated list items '- "ip"- "ip"'
@@ -297,70 +342,32 @@ config-version: 3
             }
         };
 
-        // 0. Base Configuration
-        updateRegex(/^(key-file-name:\s*).*$/m, '$1key.pem', 'Set Floodgate key-file-name');
-        updateRegex(/^(username-prefix:\s*)(['"]?)(.*?)(['"]?)(\s*(?:#.*)?)$/m, '$1"."$5', 'Set Floodgate username-prefix');
-        updateRegex(/^(replace-spaces:\s*)(true|false)/m, '$1true');
+        // Enforce LAN defaults requested
+        updateRegex(/^(key-file-name:\s*).*$/m, '$1key.pem');
+        updateRegex(/^(username-prefix:\s*)(['"]?)(.*?)(['"]?)(\s*(?:#.*)?)$/m, '$1"."$5');
+        
+        // Disable Link
+        updateRegex(/(player-link:[\s\S]*?enabled?:\s*)(true|false)/, '$1false');
+        updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, '$1false');
+        updateRegex(/(player-link:[\s\S]*?enable-global-linking:\s*)(true|false)/, '$1false');
 
-        // 1. Ensure player-link enabled matches setting
-        updateRegex(/(player-link:[\s\S]*?enabled?:\s*)(true|false)/, `$1${this.config.floodgatePlayerLink || false}`);
-
-        // 2. Ensure require-link matches setting
-        updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, `$1${this.config.floodgateRequireLink || false}`);
-
-        // 3. Update Allowed IPs for offline access (Smart Set Comparison)
-        if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
-             const desiredIps = new Set(this.config.floodgateAllowedIps.map(ip => ip.trim()).filter(ip => ip.length > 0));
-             
-             // Robust block matching: Find 'allowed-ips:' block
-             // Matches either inline [] or multiline indented list
-             const ipRegex = /^allowed-ips:(?:\s*\[.*?\]|(?:\s*\r?\n\s*-\s+.*)+)/m;
-             const match = content.match(ipRegex);
-             
-             let needsUpdate = false;
-             
-             if (match) {
-                 const existingBlock = match[0];
-                 const extractedIps = [];
-                 const lineRegex = /-\s*["']?([^"'\r\n]+?)["']?\s*$/gm;
-                 let m;
-                 while ((m = lineRegex.exec(existingBlock)) !== null) {
-                     let ip = m[1].replace(/["']$/, '').trim();
-                     extractedIps.push(ip);
-                 }
-                 const existingSet = new Set(extractedIps);
-                 
-                 // Compare sets
-                 if (desiredIps.size !== existingSet.size) {
-                     needsUpdate = true;
-                 } else {
-                     for (const ip of desiredIps) {
-                         if (!existingSet.has(ip)) {
-                             needsUpdate = true;
-                             break;
-                         }
-                     }
-                 }
-             } else {
-                 needsUpdate = true;
-             }
-
-             if (needsUpdate) {
-                 const ipList = [...desiredIps];
-                 // Crucial: Append \n to the block to ensure separation from the next key
-                 const newBlock = `allowed-ips:${ipList.length > 0 ? '\n' + ipList.map(ip => `  - "${ip}"`).join('\n') : ' []'}\n`;
-                 
-                 if (match) {
-                     // Replace only the matched block
-                     content = content.replace(match[0], newBlock);
-                 } else {
-                     // Append if missing, ensuring newline
-                     if (!content.includes('allowed-ips:')) {
-                         content += `\n${newBlock}`;
-                     }
-                 }
+        // Handle Allowed IPs: Explicitly clear them for LAN if empty/not provided
+        // The user requested removing the allowed-ips section for LAN
+        const allowedIpsRegex = /^allowed-ips:[\s\S]*?(?=\n[a-z]|$)/m;
+        if (allowedIpsRegex.test(content)) {
+             // Only if the config specifically wants to enforce IPs do we add them. 
+             // But for LAN default we generally want to remove restrictions.
+             // If the user supplied IPs in UI, we might add them.
+             if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps) && this.config.floodgateAllowedIps.length > 0) {
+                 // Add them if present in UI
+                 const ipList = this.config.floodgateAllowedIps.map(ip => ip.trim()).filter(ip => ip);
+                 const newBlock = `allowed-ips:\n${ipList.map(ip => `  - "${ip}"`).join('\n')}`;
+                 content = content.replace(allowedIpsRegex, newBlock);
                  changed = true;
-                 this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs', level: 'info' });
+             } else {
+                 // Remove/Comment out if empty to avoid blocking LAN
+                 content = content.replace(allowedIpsRegex, '# allowed-ips cleared for LAN');
+                 changed = true;
              }
         }
 
