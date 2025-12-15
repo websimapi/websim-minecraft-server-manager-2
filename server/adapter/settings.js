@@ -27,47 +27,58 @@ module.exports.updateSettings = function(settings) {
         }
     });
 
-    if (!changed) return;
-    
-    // Persist to config.json
-    // We filter out complex objects or temporary state if any, but config is mostly flat
+    // Always persist to config.json
     fs.writeFileSync(path.join(__dirname, '..', 'config.json'), JSON.stringify(this.config, null, 2));
     
-    if (settings.mcPort || settings.maxPlayers) this.updateServerProperties(settings);
-    
-    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate || settings.geyserAuthType || settings.floodgateAllowedIps) {
-        this.configureGeyser();
-        if (this.config.enableFloodgate) this.configureFloodgate();
-    }
-
-    this.broadcast({ type: 'notification', message: 'Settings updated successfully. A restart is required for some changes to take effect.', level: 'success' });
+    // Broadcast new state to UI
     this.broadcast({ type: 'settings', config: this.config });
+
+    if (this.serverStatus === 'online') {
+        this.broadcast({ type: 'notification', message: 'Stopping server to apply new settings...', level: 'warning' });
+        this.pendingSettingsRestart = true;
+        this.stop();
+    } else {
+        this.applySettingsToFiles();
+        this.broadcast({ type: 'notification', message: 'Settings saved.', level: 'success' });
+    }
 };
 
-module.exports.updateServerProperties = function(settings) {
+module.exports.applySettingsToFiles = function() {
+    this.updateServerProperties();
+    if (this.config.enableGeyser) {
+        this.configureGeyser();
+    }
+    if (this.config.enableFloodgate) {
+        this.configureFloodgate();
+    }
+};
+
+module.exports.updateServerProperties = function() {
     const serverPropsPath = path.join(this.config.minecraftDir, 'server.properties');
     if (fs.existsSync(serverPropsPath)) {
         let content = fs.readFileSync(serverPropsPath, 'utf8');
         let changed = false;
 
-        if (settings.mcPort) {
-            const portRegex = /^server-port=\d*/m;
-            if (portRegex.test(content)) {
-                content = content.replace(portRegex, `server-port=${settings.mcPort}`);
+        const portRegex = /^server-port=\d*/m;
+        if (portRegex.test(content)) {
+            const currentPort = content.match(portRegex)[0];
+            if (currentPort !== `server-port=${this.config.mcPort}`) {
+                content = content.replace(portRegex, `server-port=${this.config.mcPort}`);
                 changed = true;
             }
         }
-        if (settings.maxPlayers) {
-            const maxPlayersRegex = /^max-players=\d*/m;
-            if (maxPlayersRegex.test(content)) {
-                content = content.replace(maxPlayersRegex, `max-players=${settings.maxPlayers}`);
+
+        const maxPlayersRegex = /^max-players=\d*/m;
+        if (maxPlayersRegex.test(content)) {
+            const currentMax = content.match(maxPlayersRegex)[0];
+            if (currentMax !== `max-players=${this.config.maxPlayers}`) {
+                content = content.replace(maxPlayersRegex, `max-players=${this.config.maxPlayers}`);
                 changed = true;
             }
         }
         
-        // If Floodgate is enabled, ensure server is in offline mode to allow 'offline' auth-type from Geyser to work
-        // without authentication errors from the Java server.
-        if (this.config.enableFloodgate) {
+        // Force offline mode if Geyser/Floodgate are enabled to avoid auth issues on the Java end
+        if (this.config.enableGeyser || this.config.enableFloodgate) {
             const onlineModeRegex = /^online-mode=.*$/m;
             if (onlineModeRegex.test(content)) {
                 if (!content.match(/^online-mode=false$/m)) {

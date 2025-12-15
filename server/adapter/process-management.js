@@ -147,7 +147,23 @@ module.exports.setupProcessEventListeners = function() {
         this.players     = [];
         this.updatePlayersList();
         this.broadcast({ type: 'status', online: false, stats: this.stats, startTime: this.startTime });
-        this.broadcast({ type: 'notification', message: 'Server stopped', level: 'info' });
+        
+        if (this.pendingSettingsRestart) {
+            this.broadcast({ type: 'notification', message: 'Applying settings and restarting...', level: 'info' });
+            this.pendingSettingsRestart = false;
+            // Short delay to ensure file handles are free
+            setTimeout(() => {
+                try {
+                    this.applySettingsToFiles();
+                    this.start();
+                } catch (e) {
+                     console.error(e);
+                     this.broadcast({ type: 'error', message: `Failed to restart after settings update: ${e.message}` });
+                }
+            }, 1000);
+        } else {
+            this.broadcast({ type: 'notification', message: 'Server stopped', level: 'info' });
+        }
     });
 };
 
