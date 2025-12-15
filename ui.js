@@ -239,3 +239,43 @@ export function showToast(message, type = 'info') {
     toastContainer.appendChild(toast);
     setTimeout(() => toast.remove(), 5000);
 }
+
+export function updateSettings(config) {
+    if (!config) return;
+
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    };
+    const setCheck = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.checked = !!val;
+            if (id === 'enableGeyserCheck') el.dispatchEvent(new Event('change'));
+        }
+    };
+
+    setVal('serverTypeSelect', config.serverType);
+    setVal('minecraftVersionInput', config.minecraftVersion);
+    setVal('maxPlayersInput', config.maxPlayers);
+    setVal('portInput', config.port);
+
+    // Parse RAM string (e.g. "2G", "2048M") to integer MB
+    let ramVal = 2048;
+    if (config.maxRam) {
+        const match = config.maxRam.match(/(\d+)([GM]?)/i);
+        if (match) {
+            let num = parseInt(match[1]);
+            let unit = match[2].toUpperCase();
+            if (unit === 'G') num *= 1024;
+            ramVal = num;
+        }
+    }
+    setVal('ramInput', ramVal);
+
+    setCheck('autoStartCheck', config.autoStart);
+    setCheck('enableGeyserCheck', config.enableGeyser);
+    setCheck('autoUpdateGeyserCheck', config.autoUpdateGeyser);
+    setCheck('enableFloodgateCheck', config.enableFloodgate);
+    setCheck('enableViaVersionCheck', config.enableViaVersion);
+}

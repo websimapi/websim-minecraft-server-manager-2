@@ -13,7 +13,13 @@ function handleWebSocketMessage(data) {
             state.setServerStatus(data.online ? 'online' : 'offline');
             state.setServerStartTime(data.startTime);
             ui.updateServerStatus(data.online, data.stats, data.startTime);
+            if (data.config) {
+                ui.updateSettings(data.config);
+            }
             ui.hideLoading();
+            break;
+        case 'settings':
+            ui.updateSettings(data.config);
             break;
         case 'players':
             state.setPlayers(data.players);

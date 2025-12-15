@@ -12,11 +12,12 @@ module.exports.updateSettings = function(settings) {
     
     // Persist to config.json
     // We filter out complex objects or temporary state if any, but config is mostly flat
-    fs.writeFileSync(path.join(__dirname, 'config.json'), JSON.stringify(this.config, null, 2));
+    fs.writeFileSync(path.join(__dirname, '..', 'config.json'), JSON.stringify(this.config, null, 2));
     
     if (settings.port || settings.maxPlayers) this.updateServerProperties(settings);
     
     this.broadcast({ type: 'notification', message: 'Settings updated successfully. A restart is required for some changes to take effect.', level: 'success' });
+    this.broadcast({ type: 'settings', config: this.config });
 };
 
 module.exports.updateServerProperties = function(settings) {

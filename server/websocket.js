@@ -13,7 +13,8 @@ function setupWebSocket(serverInstance) {
             online: serverInstance.minecraft.serverStatus === 'online',
             stats: serverInstance.minecraft.stats,
             players: serverInstance.minecraft.players,
-            startTime: serverInstance.minecraft.startTime
+            startTime: serverInstance.minecraft.startTime,
+            config: serverInstance.minecraft.config
         });
 
         ws.on('message', (message) => {
@@ -67,7 +68,8 @@ function handleClientMessage(serverInstance, ws, data) {
                 online: serverInstance.minecraft.serverStatus === 'online',
                 stats: serverInstance.minecraft.stats,
                 players: serverInstance.minecraft.players,
-                startTime: serverInstance.minecraft.startTime
+                startTime: serverInstance.minecraft.startTime,
+                config: serverInstance.minecraft.config
             });
             break;
         default:
