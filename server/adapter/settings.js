@@ -182,22 +182,23 @@ module.exports.configureFloodgate = function() {
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
-        // 1. Ensure player-link enable is false for offline/floodgate setup by default
-        const playerLinkRegex = /(player-link:[\s\S]*?enable:\s*)(true|false)/;
+        // 1. Ensure player-link enabled is TRUE
+        // Matches 'enable' or 'enabled' to support different config versions
+        const playerLinkRegex = /(player-link:[\s\S]*?enable(?:d)?:\s*)(true|false)/;
         const plMatch = content.match(playerLinkRegex);
-        if (plMatch && plMatch[2] === 'true') {
-            content = content.replace(playerLinkRegex, '$1false');
+        if (plMatch && plMatch[2] === 'false') {
+            content = content.replace(playerLinkRegex, '$1true');
             changed = true;
-            this.broadcast({ type: 'notification', message: 'Updated Floodgate player-link to false', level: 'info' });
+            this.broadcast({ type: 'notification', message: 'Enabled Floodgate player-link', level: 'info' });
         }
 
-        // 2. Ensure disconnect invalid-key is false
-        const invalidKeyRegex = /(disconnect:[\s\S]*?invalid-key:\s*)(true|false)/;
-        const ikMatch = content.match(invalidKeyRegex);
-        if (ikMatch && ikMatch[2] === 'true') {
-            content = content.replace(invalidKeyRegex, '$1false');
+        // 2. Ensure require-link is TRUE (Enforce auth for external, bypass for allowed-ips)
+        const requireLinkRegex = /(player-link:[\s\S]*?require-link:\s*)(true|false)/;
+        const rlMatch = content.match(requireLinkRegex);
+        if (rlMatch && rlMatch[2] === 'false') {
+            content = content.replace(requireLinkRegex, '$1true');
             changed = true;
-            this.broadcast({ type: 'notification', message: 'Updated Floodgate disconnect.invalid-key to false', level: 'info' });
+            this.broadcast({ type: 'notification', message: 'Enabled Floodgate require-link (Auth required for non-LAN)', level: 'info' });
         }
 
         // 3. Update Allowed IPs for offline access
