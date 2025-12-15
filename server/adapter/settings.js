@@ -35,7 +35,10 @@ module.exports.updateSettings = function(settings) {
     
     if (settings.mcPort || settings.maxPlayers) this.updateServerProperties(settings);
     
-    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate) this.configureGeyser();
+    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate) {
+        this.configureGeyser();
+        if (this.config.enableFloodgate) this.configureFloodgate();
+    }
 
     this.broadcast({ type: 'notification', message: 'Settings updated successfully. A restart is required for some changes to take effect.', level: 'success' });
     this.broadcast({ type: 'settings', config: this.config });
@@ -117,8 +120,8 @@ module.exports.configureGeyser = function() {
         
         if (match) {
             const currentAuthType = match[3];
-            // 'offline' allows Bedrock clients to join without signing into Xbox.
-            const desiredAuthType = this.config.enableFloodgate ? 'offline' : 'online';
+            // 'floodgate' allows delegation to Floodgate for auth (needed for offline mode properly)
+            const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
             
             if (currentAuthType !== desiredAuthType) {
                 configContent = configContent.replace(authTypeRegex, `$1${desiredAuthType}`);
@@ -129,7 +132,7 @@ module.exports.configureGeyser = function() {
              // Fallback for non-multiline matching just in case
              const fallbackRegex = /(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/;
              if (fallbackRegex.test(configContent)) {
-                 const desiredAuthType = this.config.enableFloodgate ? 'offline' : 'online';
+                 const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
                  configContent = configContent.replace(fallbackRegex, `$1${desiredAuthType}`);
                  changed = true;
                  this.broadcast({ type: 'notification', message: `Updated Geyser auth-type (fallback) to: ${desiredAuthType}`, level: 'info' });
@@ -143,6 +146,48 @@ module.exports.configureGeyser = function() {
     } catch (error) {
         console.error(`Failed to configure Geyser: ${error}`);
         this.broadcast({ type: 'error', message: `Failed to auto-configure Geyser: ${error.message}` });
+    }
+};
+
+module.exports.configureFloodgate = function() {
+    if (!this.config.enableFloodgate) return;
+
+    const possiblePaths = [
+        path.join(this.config.minecraftDir, 'plugins', 'floodgate', 'config.yml'),
+        path.join(this.config.minecraftDir, 'plugins', 'floodgate-spigot', 'config.yml')
+    ];
+
+    const configPath = possiblePaths.find(p => fs.existsSync(p));
+    if (!configPath) return;
+
+    try {
+        let content = fs.readFileSync(configPath, 'utf8');
+        let changed = false;
+
+        // 1. Set player-link enable: false for offline mode to prevent linking errors
+        // Matches: player-link: (newline) (spaces) enable: true
+        const playerLinkRegex = /(player-link:\s*[\r\n]+\s*enable:\s*)true/i;
+        if (playerLinkRegex.test(content)) {
+            content = content.replace(playerLinkRegex, '$1false');
+            changed = true;
+            this.broadcast({ type: 'notification', message: 'Updated Floodgate player-link to false', level: 'info' });
+        }
+
+        // 2. Set disconnect invalid-key: false to allow connections if keys are tricky
+        // Matches: disconnect: (newline) (spaces) invalid-key: true
+        const invalidKeyRegex = /(disconnect:\s*[\r\n]+\s*invalid-key:\s*)true/i;
+        if (invalidKeyRegex.test(content)) {
+            content = content.replace(invalidKeyRegex, '$1false');
+            changed = true;
+            this.broadcast({ type: 'notification', message: 'Updated Floodgate disconnect.invalid-key to false', level: 'info' });
+        }
+
+        if (changed) {
+            fs.writeFileSync(configPath, content, 'utf8');
+            this.broadcast({ type: 'notification', message: 'Floodgate configuration updated.', level: 'success' });
+        }
+    } catch (error) {
+        console.error(`Failed to configure Floodgate: ${error}`);
     }
 };
 
