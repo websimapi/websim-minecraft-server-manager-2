@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Server Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cube"></i>
+                    <span>MCManager</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="console">
+                    <i class="fas fa-terminal"></i>
+                    <span>Console</span>
+                </a>
+                <a href="#" class="nav-item" data-section="players">
+                    <i class="fas fa-users"></i>
+                    <span>Players</span>
+                </a>
+                <a href="#" class="nav-item" data-section="files">
+                    <i class="fas fa-folder"></i>
+                    <span>Files</span>
+                </a>
+                <a href="#" class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="nav-item" data-section="downloads">
+                    <i class="fas fa-download"></i>
+                    <span>Downloads</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="page-title">Dashboard</h1>
+                    <div class="status-container">
+                        <div class="server-status" id="bridgeStatus">
+                            <div class="status-indicator offline" id="bridgeStatusIndicator"></div>
+                            <span id="bridgeStatusText">Bridge Offline</span>
+                        </div>
+                        <div class="server-status" id="serverStatus">
+                            <div class="status-indicator offline" id="serverStatusIndicator"></div>
+                            <span id="serverStatusText">Server Offline</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-primary" id="startStopBtn">
+                        <i class="fas fa-play"></i>
+                        Start Server
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section class="section" id="dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="playerCount">0</h3>
+                            <p>Players Online</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="uptime">00:00:00</h3>
+                            <p>Uptime</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-memory"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="ramUsage">0 MB</h3>
+                            <p>RAM Usage</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="tps">20.0</h3>
+                            <p>TPS</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Server Info</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="info-row">
+                                <span>Version:</span>
+                                <span id="serverVersion">Unknown</span>
+                            </div>
+                            <div class="info-row">
+                                <span>Type:</span>
+                                <span id="serverType">Java Edition</span>
+                            </div>
+                            <div class="info-row">
+                                <span>Port:</span>
+                                <span id="serverPort">25565</span>
+                            </div>
+                            <div class="info-row">
+                                <span>Max Players:</span>
+                                <span id="maxPlayers">20</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Quick Actions</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary" id="backupBtn">
+                                    <i class="fas fa-download"></i>
+                                    Create Backup
+                                </button>
+                                <button class="btn btn-secondary" id="restartBtn">
+                                    <i class="fas fa-redo"></i>
+                                    Restart Server
+                                </button>
+                                <button class="btn btn-secondary" id="saveWorldBtn">
+                                    <i class="fas fa-save"></i>
+                                    Save World
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Console Section -->
+            <section class="section hidden" id="console">
+                <div class="console-container">
+                    <div class="console-header">
+                        <h3>Server Console</h3>
+                        <div class="console-controls">
+                            <button class="btn btn-small" id="clearConsoleBtn">
+                                <i class="fas fa-trash"></i>
+                                Clear
+                            </button>
+                            <button class="btn btn-small" id="scrollToggleBtn">
+                                <i class="fas fa-arrows-alt-v"></i>
+                                Auto-scroll
+                            </button>
+                        </div>
+                    </div>
+                    <div class="console-output" id="consoleOutput"></div>
+                    <div class="console-input">
+                        <input type="text" id="commandInput" placeholder="Enter command..." autocomplete="off">
+                        <button class="btn btn-primary" id="sendCommandBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Players Section -->
+            <section class="section hidden" id="players">
+                <div class="players-container">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Online Players</h3>
+                            <span class="player-count-badge" id="onlinePlayerCount">0</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="players-list" id="playersList">
+                                <div class="no-players">No players online</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Player Actions</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="player-actions">
+                                <input type="text" id="playerActionInput" placeholder="Player name...">
+                                <div class="action-buttons">
+                                    <button class="btn btn-secondary" id="kickPlayerBtn">
+                                        <i class="fas fa-user-times"></i>
+                                        Kick
+                                    </button>
+                                    <button class="btn btn-secondary" id="banPlayerBtn">
+                                        <i class="fas fa-ban"></i>
+                                        Ban
+                                    </button>
+                                    <button class="btn btn-secondary" id="opPlayerBtn">
+                                        <i class="fas fa-crown"></i>
+                                        OP
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Files Section -->
+            <section class="section hidden" id="files">
+                <div class="files-container">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>File Manager</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="file-operations">
+                                <button class="btn btn-primary" id="createBackupBtn">
+                                    <i class="fas fa-archive"></i>
+                                    Create Backup
+                                </button>
+                                <button class="btn btn-secondary" id="uploadFileBtn">
+                                    <i class="fas fa-upload"></i>
+                                    Upload File
+                                </button>
+                                <input type="file" id="fileUpload" style="display: none;">
+                            </div>
+                            <div class="file-list" id="fileList">
+                                <div class="file-item">
+                                    <i class="fas fa-file"></i>
+                                    <span>server.properties</span>
+                                    <button class="btn btn-small">Edit</button>
+                                </div>
+                                <div class="file-item">
+                                    <i class="fas fa-folder"></i>
+                                    <span>world/</span>
+                                    <button class="btn btn-small">Open</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="section hidden" id="settings">
+                <div class="settings-container">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Server Settings</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label>Server Type</label>
+                                    <select id="serverTypeSelect">
+                                        <option value="java">Java Edition</option>
+                                        <option value="bedrock">Bedrock Edition</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Players</label>
+                                    <input type="number" id="maxPlayersInput" min="1" max="100" value="20">
+                                </div>
+                                <div class="form-group">
+                                    <label>Server Port</label>
+                                    <input type="number" id="portInput" min="1" max="65535" value="25565">
+                                </div>
+                                <div class="form-group">
+                                    <label>RAM Allocation (MB)</label>
+                                    <input type="number" id="ramInput" min="512" max="8192" value="2048">
+                                </div>
+                                <div class="form-group">
+                                    <label>Auto-start on Boot</label>
+                                    <input type="checkbox" id="autoStartCheck">
+                                </div>
+                                <div class="form-group">
+                                    <label>Enable Geyser (Bedrock Support)</label>
+                                    <input type="checkbox" id="enableGeyserCheck">
+                                </div>
+                                <div class="form-group" id="floodgateGroup">
+                                    <label>Enable Floodgate (Bedrock Offline-Mode)</label>
+                                    <input type="checkbox" id="enableFloodgateCheck">
+                                </div>
+                                <button class="btn btn-primary" id="saveSettingsBtn">
+                                    <i class="fas fa-save"></i>
+                                    Save Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 24px; border-color: var(--error-color);">
+                        <div class="card-header" style="background: rgba(239, 68, 68, 0.1);">
+                            <h3 style="color: var(--error-color);">Danger Zone</h3>
+                        </div>
+                        <div class="card-content">
+                            <p class="text-muted">Use this if the server is stuck or says "session.lock is locked". This will force kill all Java processes.</p>
+                            <br>
+                            <button class="btn btn-secondary" id="forceKillBtn" style="color: var(--error-color); border-color: var(--error-color);">
+                                <i class="fas fa-skull"></i>
+                                Force Kill Server Instances
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Downloads Section -->
+            <section class="section hidden" id="downloads">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Bridge Management</h3>
+                    </div>
+                    <div class="card-content">
+                        <p>Manage the local Node.js server bridge software.</p>
+                        
+                        <div class="settings-form">
+                             <div class="form-group">
+                                <h4>Install</h4>
+                                <p class="text-muted">Download the bridge files to run on your machine.</p>
+                                <button class="btn btn-primary" id="downloadBridgeBtn">
+                                    <i class="fas fa-file-archive"></i>
+                                    Download .zip
+                                </button>
+                             </div>
+                             
+                             <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+
+                             <div class="form-group">
+                                <h4>Update</h4>
+                                <p class="text-muted">Push the latest web client code to your running bridge instance. The bridge will restart automatically.</p>
+                                <button class="btn btn-secondary" id="updateBridgeBtn">
+                                    <i class="fas fa-sync"></i>
+                                    Push Update to Bridge
+                                </button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-cube"></i>
+            <span>Loading...</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "./app.js": "./app.js",
+          "./config.js": "./config.js",
+          "./state.js": "./state.js",
+          "./api.js": "./api.js",
+          "./ui.js": "./ui.js"
+        }
+      }
+    </script>
+    <script type="module" src="app.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
