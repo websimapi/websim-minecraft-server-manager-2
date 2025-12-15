@@ -16,7 +16,7 @@ module.exports.updateSettings = function(settings) {
     // Merge other settings
     const keysToCheck = [
         'serverType', 'minecraftVersion', 'maxPlayers', 'mcPort', 'geyserPort',
-        'autoStart', 'enableGeyser', 'autoUpdateGeyser', 
+        'autoStart', 'enableGeyser', 'autoUpdateGeyser', 'geyserAuthType',
         'enableFloodgate', 'enableViaVersion'
     ];
 
@@ -35,7 +35,7 @@ module.exports.updateSettings = function(settings) {
     
     if (settings.mcPort || settings.maxPlayers) this.updateServerProperties(settings);
     
-    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate) {
+    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate || settings.geyserAuthType) {
         this.configureGeyser();
         if (this.config.enableFloodgate) this.configureFloodgate();
     }
@@ -86,7 +86,6 @@ module.exports.updateServerProperties = function(settings) {
 module.exports.configureGeyser = function() {
     if (!this.config.enableGeyser) return;
 
-    // Check possible config locations
     const possiblePaths = [
         path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml'),
         path.join(this.config.minecraftDir, 'plugins', 'Geyser', 'config.yml')
@@ -103,7 +102,7 @@ module.exports.configureGeyser = function() {
         let configContent = fs.readFileSync(geyserConfigPath, 'utf8');
         let changed = false;
 
-        // Update Port
+        // Update Bedrock Port
         if (this.config.geyserPort) {
             const bedrockPortRegex = /(bedrock:[\s\S]*?port:\s*)(\d+)/;
             const match = configContent.match(bedrockPortRegex);
@@ -113,27 +112,33 @@ module.exports.configureGeyser = function() {
             }
         }
 
-        // Update Auth Type based on Floodgate setting
-        // Use strict regex to avoid partial matches
-        const authTypeRegex = /^(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/m;
-        const match = configContent.match(authTypeRegex);
-        
+        // Update Auth Type
+        // We prioritize the explicit user setting 'geyserAuthType' if present.
+        // Fallback: If Floodgate enabled, default to 'floodgate'. Else 'online'.
+        let desiredAuthType = this.config.geyserAuthType;
+        if (!desiredAuthType) {
+            desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
+        }
+
+        // Robust Regex: Look for 'remote:' block, then 'auth-type:' inside it.
+        // This handles cases where auth-type might be elsewhere (unlikely) or indented differently.
+        // The regex captures "remote:" ... "auth-type: " ... "currentValue"
+        const remoteBlockRegex = /(remote:[\s\S]*?auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+        const match = configContent.match(remoteBlockRegex);
+
         if (match) {
-            const currentAuthType = match[3];
-            // 'floodgate' allows delegation to Floodgate for auth (needed for offline mode properly)
-            const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
-            
-            if (currentAuthType !== desiredAuthType) {
-                configContent = configContent.replace(authTypeRegex, `$1${desiredAuthType}`);
+            const currentAuth = match[3];
+            if (currentAuth !== desiredAuthType) {
+                configContent = configContent.replace(remoteBlockRegex, `$1${desiredAuthType}`);
                 changed = true;
                 this.broadcast({ type: 'notification', message: `Updated Geyser auth-type to: ${desiredAuthType}`, level: 'info' });
             }
         } else {
-             // Fallback for non-multiline matching just in case
-             const fallbackRegex = /(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/;
-             if (fallbackRegex.test(configContent)) {
-                 const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
-                 configContent = configContent.replace(fallbackRegex, `$1${desiredAuthType}`);
+             // Fallback: search for simple "auth-type: value" if remote block match fails
+             const simpleAuthRegex = /(auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+             const simpleMatch = configContent.match(simpleAuthRegex);
+             if (simpleMatch && simpleMatch[3] !== desiredAuthType) {
+                 configContent = configContent.replace(simpleAuthRegex, `$1${desiredAuthType}`);
                  changed = true;
                  this.broadcast({ type: 'notification', message: `Updated Geyser auth-type (fallback) to: ${desiredAuthType}`, level: 'info' });
              }
@@ -164,19 +169,22 @@ module.exports.configureFloodgate = function() {
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
-        // 1. Set player-link enable: false for offline mode to prevent linking errors
-        // Matches: player-link: (newline) (spaces) enable: true
-        const playerLinkRegex = /(player-link:\s*[\r\n]+\s*enable:\s*)true/i;
-        if (playerLinkRegex.test(content)) {
+        // 1. Ensure player-link enable is false for offline/floodgate setup by default
+        // Regex looks for "player-link:" section then "enable: true"
+        // Uses [\s\S]*? for non-greedy multiline match
+        const playerLinkRegex = /(player-link:[\s\S]*?enable:\s*)(true|false)/;
+        const plMatch = content.match(playerLinkRegex);
+        if (plMatch && plMatch[2] === 'true') {
             content = content.replace(playerLinkRegex, '$1false');
             changed = true;
             this.broadcast({ type: 'notification', message: 'Updated Floodgate player-link to false', level: 'info' });
         }
 
-        // 2. Set disconnect invalid-key: false to allow connections if keys are tricky
-        // Matches: disconnect: (newline) (spaces) invalid-key: true
-        const invalidKeyRegex = /(disconnect:\s*[\r\n]+\s*invalid-key:\s*)true/i;
-        if (invalidKeyRegex.test(content)) {
+        // 2. Ensure disconnect invalid-key is false
+        // Regex looks for "disconnect:" section then "invalid-key: true"
+        const invalidKeyRegex = /(disconnect:[\s\S]*?invalid-key:\s*)(true|false)/;
+        const ikMatch = content.match(invalidKeyRegex);
+        if (ikMatch && ikMatch[2] === 'true') {
             content = content.replace(invalidKeyRegex, '$1false');
             changed = true;
             this.broadcast({ type: 'notification', message: 'Updated Floodgate disconnect.invalid-key to false', level: 'info' });

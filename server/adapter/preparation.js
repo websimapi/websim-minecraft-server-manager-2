@@ -29,8 +29,8 @@ module.exports.preparePlugins = async function() {
         fs.mkdirSync(pluginsDir, { recursive: true });
     }
     if (this.config.enableGeyser) {
-        // Auto-update if configured (default true) to prevent version mismatch errors
-        const forceUpdate = this.config.autoUpdateGeyser !== false;
+        // Only force update if explicitly true. Default is now false to prevent overwriting user changes or wasting bandwidth
+        const forceUpdate = this.config.autoUpdateGeyser === true;
         
         await this.downloadGeyserPlugin(forceUpdate);
         if (this.config.enableFloodgate) {

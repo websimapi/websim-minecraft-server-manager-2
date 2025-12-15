@@ -19,7 +19,9 @@ let serverConfig = {
     /* @tweakable Port for Geyser (Bedrock) clients. Default is 19132. */
     geyserPort: 19132,
     /* @tweakable Automatically update Geyser/Floodgate on server start to match server version */
-    autoUpdateGeyser: true,
+    autoUpdateGeyser: false,
+    /* @tweakable Geyser Authentication Type (online, floodgate, offline) */
+    geyserAuthType: 'floodgate',
     /* @tweakable Enable Floodgate to allow Bedrock clients without a Java account */
     enableFloodgate: false,
     /* @tweakable Enable ViaVersion to allow older/newer client connections */

@@ -62,7 +62,7 @@ function bindEventListeners() {
     const settingsIds = [
         'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
         'portInput', 'ramInput', 'geyserPortInput', 'autoStartCheck', 'enableGeyserCheck', 
-        'autoUpdateGeyserCheck', 'enableFloodgateCheck', 'enableViaVersionCheck'
+        'autoUpdateGeyserCheck', 'geyserAuthTypeSelect', 'enableFloodgateCheck', 'enableViaVersionCheck'
     ];
     settingsIds.forEach(id => {
         const el = document.getElementById(id);
@@ -86,21 +86,20 @@ function updateGeyserVisibility() {
     const geyserPortGroup = document.getElementById('geyserPortGroup');
     const floodgateGroup = document.getElementById('floodgateGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
-    const floodgateCheck = document.getElementById('enableFloodgateCheck');
-
+    const geyserAuthGroup = document.getElementById('geyserAuthGroup');
+    
     if (!geyserCheck) return;
 
     if (geyserCheck.checked) {
         if (geyserPortGroup) geyserPortGroup.style.display = 'flex';
         if (floodgateGroup) floodgateGroup.style.display = 'flex';
         if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'flex';
+        if (geyserAuthGroup) geyserAuthGroup.style.display = 'flex';
     } else {
         if (geyserPortGroup) geyserPortGroup.style.display = 'none';
         if (floodgateGroup) floodgateGroup.style.display = 'none';
         if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
-        // Only uncheck floodgate if user interaction caused this change (which usually triggers this function),
-        // or if explicitly called.
-        if (floodgateCheck) floodgateCheck.checked = false;
+        if (geyserAuthGroup) geyserAuthGroup.style.display = 'none';
     }
 }
 
@@ -291,6 +290,7 @@ export function updateSettings(config) {
     setVal('maxPlayersInput', config.maxPlayers);
     setVal('portInput', config.mcPort || 25565);
     setVal('geyserPortInput', config.geyserPort || 19132);
+    setVal('geyserAuthTypeSelect', config.geyserAuthType || (config.enableFloodgate ? 'floodgate' : 'online'));
 
     // Parse RAM string (e.g. "2G", "2048M") to integer MB
     let ramVal = 2048;

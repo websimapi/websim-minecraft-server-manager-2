@@ -313,9 +313,19 @@
                                 </div>
                                 <div class="form-group" id="autoUpdateGeyserGroup" style="margin-left: 20px; font-size: 0.9em; display: none;">
                                     <label>Auto-update Geyser & Floodgate</label>
-                                    <input type="checkbox" id="autoUpdateGeyserCheck" checked>
-                                    <small class="text-muted">Recommended: Fetches latest build on every start to fix bugs.</small>
+                                    <input type="checkbox" id="autoUpdateGeyserCheck">
+                                    <small class="text-muted">Fetches latest build on every start (overwrites jars).</small>
                                 </div>
+                                <div class="form-group" id="geyserAuthGroup" style="margin-left: 20px; display: none;">
+                                    <label>Geyser Auth Type</label>
+                                    <select id="geyserAuthTypeSelect">
+                                        <option value="online">Online (Requires Java Account)</option>
+                                        <option value="floodgate">Floodgate (No Java Account)</option>
+                                        <option value="offline">Offline</option>
+                                    </select>
+                                    <small class="text-muted">Use 'Floodgate' to allow Bedrock players without Java accounts.</small>
+                                </div>
+
                                 <div class="form-group" id="floodgateGroup">
                                     <label>Enable Floodgate (Bedrock Offline-Mode)</label>
                                     <input type="checkbox" id="enableFloodgateCheck">
