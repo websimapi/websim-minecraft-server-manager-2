@@ -66,19 +66,9 @@ module.exports.start = async function() {
     this.broadcast({ type: 'status', online: true, stats: this.stats, startTime: this.startTime });
     this.broadcast({ type: 'notification', message: 'Server started successfully', level: 'success' });
 
-    if (this.config.enableGeyser) {
-        // Wait for Geyser to generate files, then configure and reload if needed
-        setTimeout(() => {
-            const geyserChanged = this.configureGeyser();
-            const floodgateChanged = this.config.enableFloodgate ? this.configureFloodgate() : false;
-            
-            if ((geyserChanged || floodgateChanged) && this.serverStatus === 'online') {
-                this.broadcast({ type: 'notification', message: 'Detected Geyser/Floodgate config generation. Restarting server to apply settings...', level: 'warning' });
-                // Full restart required for Floodgate settings to take effect properly
-                this.restart();
-            }
-        }, 15000);
-    }
+    // We used to have a delayed check here to restart if Geyser generated configs late.
+    // That caused infinite loops. Now we pre-generate minimal configs in start() -> applySettingsToFiles()
+    // so we don't need to restart.
 
     // Monitor memory usage periodically
     if (this.statsUpdater) clearInterval(this.statsUpdater);

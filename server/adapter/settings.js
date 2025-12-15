@@ -102,11 +102,27 @@ module.exports.configureGeyser = function() {
         path.join(this.config.minecraftDir, 'plugins', 'Geyser', 'config.yml')
     ];
 
-    const geyserConfigPath = possiblePaths.find(p => fs.existsSync(p));
+    let geyserConfigPath = possiblePaths.find(p => fs.existsSync(p));
 
+    // Auto-create config if missing to prevent restart loops waiting for it
     if (!geyserConfigPath) {
-        this.broadcast({ type: 'notification', message: 'Geyser config not found (yet). Skipping auto-configuration.', level: 'warning' });
-        return false;
+        geyserConfigPath = path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml');
+        const dir = path.dirname(geyserConfigPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+        // Minimal config that Geyser will respect and hydrate
+        const defaultConfig = `
+bedrock:
+  address: 0.0.0.0
+  port: ${this.config.geyserPort || 19132}
+remote:
+  address: 127.0.0.1
+  port: ${this.config.mcPort || 25565}
+  auth-type: ${this.config.geyserAuthType || (this.config.enableFloodgate ? 'floodgate' : 'online')}
+`;
+        fs.writeFileSync(geyserConfigPath, defaultConfig.trim());
+        this.broadcast({ type: 'notification', message: 'Created minimal Geyser config.', level: 'success' });
+        // We just created it with correct values, no need to parse/edit immediately unless logic below finds discrepancies
     }
 
     try {
@@ -220,9 +236,15 @@ config-version: 3
         let changed = false;
 
         // 1. Fix known corruption artifacts (e.g. concatenated lines like '- "ip"- "ip"')
-        // This handles the specific error reported in logs
-        if (content.match(/- ".*?"- "/)) {
-            content = content.replace(/- "(.*?)"- "(.*?)"/g, '- "$1"\n  - "$2"');
+        // We use a loop to catch multiple occurrences or chained corruptions
+        let corruptionFixed = false;
+        while (content.match(/- ".*?"- "/)) {
+            const newContent = content.replace(/- "(.*?)"- "(.*?)"/g, '- "$1"\n  - "$2"');
+            if (newContent === content) break; // Should not happen if match passed, but safety break
+            content = newContent;
+            corruptionFixed = true;
+        }
+        if (corruptionFixed) {
             changed = true;
             this.broadcast({ type: 'notification', message: 'Fixed malformed Floodgate config.', level: 'warning' });
         }
@@ -252,28 +274,28 @@ config-version: 3
 
         // 3. Update Allowed IPs for offline access (Smart Set Comparison)
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
-             const desiredIps = new Set(this.config.floodgateAllowedIps.filter(ip => ip.trim().length > 0));
+             const desiredIps = new Set(this.config.floodgateAllowedIps.map(ip => ip.trim()).filter(ip => ip.length > 0));
              
-             // Match 'allowed-ips:' block until the next root-level key (start of line word followed by colon)
-             // or end of string. 
-             const ipRegex = /^allowed-ips:[\s\S]*?(?=^[\w-]+:|$)/m;
+             // Robust block matching: Find 'allowed-ips:' and capture everything up to the next root key
+             const ipRegex = /^allowed-ips:(\s*(-.*(\r?\n)?)*)*/m;
              const match = content.match(ipRegex);
              
              let needsUpdate = false;
              
              if (match) {
-                 // Parse existing IPs from the block to avoid fighting formatting changes (e.g. plugin adding indentation/comments)
                  const existingBlock = match[0];
                  const extractedIps = [];
-                 // Look for patterns like: - "127.0.0.1" or - 127.0.0.1
-                 const lineRegex = /-\s*["']?([^"'\s]+)["']?/g;
+                 // More permissive regex to catch messy formatting
+                 const lineRegex = /-\s*["']?([^"'\r\n]+?)["']?\s*$/gm;
                  let m;
                  while ((m = lineRegex.exec(existingBlock)) !== null) {
-                     extractedIps.push(m[1]);
+                     // Remove potential trailing quotes if regex didn't catch them cleanly
+                     let ip = m[1].replace(/["']$/, '').trim();
+                     extractedIps.push(ip);
                  }
                  const existingSet = new Set(extractedIps);
                  
-                 // Compare sets for semantic equality
+                 // Compare sets
                  if (desiredIps.size !== existingSet.size) {
                      needsUpdate = true;
                  } else {
@@ -285,16 +307,18 @@ config-version: 3
                      }
                  }
              } else {
-                 needsUpdate = true; // Block missing completely
+                 needsUpdate = true;
              }
 
              if (needsUpdate) {
-                 const newBlock = `allowed-ips:${desiredIps.size > 0 ? '\n' + [...desiredIps].map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+                 const ipList = [...desiredIps];
+                 const newBlock = `allowed-ips:${ipList.length > 0 ? '\n' + ipList.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
                  
                  if (match) {
-                     content = content.replace(ipRegex, newBlock + '\n');
+                     // Replace only the matched block
+                     content = content.replace(match[0], newBlock);
                  } else {
-                     // Append if missing
+                     // Append if missing, ensuring newline
                      if (!content.includes('allowed-ips:')) {
                          content += `\n${newBlock}\n`;
                      }
