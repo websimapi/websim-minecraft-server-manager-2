@@ -74,12 +74,19 @@ module.exports.configureGeyser = function() {
             }
         }
 
-        // Update Auth Type if Floodgate is enabled
-        if (this.config.enableFloodgate) {
-            const authTypeRegex  = /auth-type:\s*\w+/;
-            if (!/auth-type:\s*floodgate/.test(configContent) && authTypeRegex.test(configContent)) {
-                 configContent = configContent.replace(authTypeRegex, `auth-type: floodgate`);
-                 changed = true;
+        // Update Auth Type based on Floodgate setting
+        const authTypeRegex = /(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+        const match = configContent.match(authTypeRegex);
+        
+        if (match) {
+            const currentAuthType = match[3];
+            // If Floodgate is enabled, we MUST use 'floodgate' auth type to prevent Xbox login requirement.
+            // If disabled, we default back to 'online'.
+            const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
+            
+            if (currentAuthType !== desiredAuthType) {
+                configContent = configContent.replace(authTypeRegex, `$1${desiredAuthType}`);
+                changed = true;
             }
         }
 
