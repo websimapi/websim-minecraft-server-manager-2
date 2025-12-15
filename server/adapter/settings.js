@@ -17,7 +17,7 @@ module.exports.updateSettings = function(settings) {
     const keysToCheck = [
         'serverType', 'minecraftVersion', 'maxPlayers', 'mcPort', 'geyserPort',
         'autoStart', 'enableGeyser', 'autoUpdateGeyser', 'geyserAuthType',
-        'enableFloodgate', 'enableViaVersion'
+        'enableFloodgate', 'floodgateAllowedIps', 'enableViaVersion'
     ];
 
     keysToCheck.forEach(key => {
@@ -35,7 +35,7 @@ module.exports.updateSettings = function(settings) {
     
     if (settings.mcPort || settings.maxPlayers) this.updateServerProperties(settings);
     
-    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate || settings.geyserAuthType) {
+    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate || settings.geyserAuthType || settings.floodgateAllowedIps) {
         this.configureGeyser();
         if (this.config.enableFloodgate) this.configureFloodgate();
     }
@@ -188,6 +188,27 @@ module.exports.configureFloodgate = function() {
             content = content.replace(invalidKeyRegex, '$1false');
             changed = true;
             this.broadcast({ type: 'notification', message: 'Updated Floodgate disconnect.invalid-key to false', level: 'info' });
+        }
+
+        // 3. Update Allowed IPs for offline access
+        if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
+             const ips = this.config.floodgateAllowedIps;
+             // Regex strategy: find the allowed-ips block. 
+             // It typically starts with "allowed-ips:" and either has [] or a list.
+             // We look for the key at the start of a line or file
+             const blockMatch = content.match(/^allowed-ips:(?:\s*\[\]|\s*\n(?:\s+-.*)+|.*)/m);
+             
+             if (blockMatch) {
+                  const currentBlock = blockMatch[0];
+                  // Construct new block
+                  const newString = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+                  
+                  if (currentBlock.trim() !== newString.trim()) {
+                       content = content.replace(blockMatch[0], newString);
+                       changed = true;
+                       this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs whitelist', level: 'info' });
+                  }
+             }
         }
 
         if (changed) {

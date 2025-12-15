@@ -115,6 +115,7 @@ export function saveSettings() {
         enableGeyser: document.getElementById('enableGeyserCheck').checked,
         autoUpdateGeyser: document.getElementById('autoUpdateGeyserCheck').checked,
         enableFloodgate: document.getElementById('enableFloodgateCheck').checked,
+        floodgateAllowedIps: document.getElementById('floodgateAllowedIpsInput').value.split(',').map(s => s.trim()).filter(s => s),
         enableViaVersion: document.getElementById('enableViaVersionCheck').checked
     };
 

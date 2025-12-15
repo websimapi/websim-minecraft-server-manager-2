@@ -330,6 +330,11 @@
                                     <label>Enable Floodgate (Bedrock Offline-Mode)</label>
                                     <input type="checkbox" id="enableFloodgateCheck">
                                 </div>
+                                <div class="form-group" id="floodgateIpsGroup" style="margin-left: 20px; display: none;">
+                                    <label>Floodgate Allowed LAN IPs (No Xbox Auth)</label>
+                                    <input type="text" id="floodgateAllowedIpsInput" placeholder="192.168.1.0/24, 10.0.0.0/8">
+                                    <small class="text-muted">Comma-separated CIDR ranges to allow offline access (bypass Xbox auth). Requires 'Floodgate' Auth Type.</small>
+                                </div>
                                 <div class="form-group">
                                     <label>Enable ViaVersion (Version Bridge)</label>
                                     <input type="checkbox" id="enableViaVersionCheck">

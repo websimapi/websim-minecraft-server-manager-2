@@ -62,7 +62,7 @@ function bindEventListeners() {
     const settingsIds = [
         'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
         'portInput', 'ramInput', 'geyserPortInput', 'autoStartCheck', 'enableGeyserCheck', 
-        'autoUpdateGeyserCheck', 'geyserAuthTypeSelect', 'enableFloodgateCheck', 'enableViaVersionCheck'
+        'autoUpdateGeyserCheck', 'geyserAuthTypeSelect', 'enableFloodgateCheck', 'floodgateAllowedIpsInput', 'enableViaVersionCheck'
     ];
     settingsIds.forEach(id => {
         const el = document.getElementById(id);
@@ -74,17 +74,23 @@ function bindEventListeners() {
     document.getElementById('forceKillBtn').addEventListener('click', () => apiHandler.forceKillServer());
 
     const geyserCheck = document.getElementById('enableGeyserCheck');
+    const floodgateCheck = document.getElementById('enableFloodgateCheck');
     if (geyserCheck) {
         geyserCheck.addEventListener('change', updateGeyserVisibility);
-        // Initial state
-        updateGeyserVisibility();
     }
+    if (floodgateCheck) {
+        floodgateCheck.addEventListener('change', updateGeyserVisibility);
+    }
+    // Initial state
+    updateGeyserVisibility();
 }
 
 function updateGeyserVisibility() {
     const geyserCheck = document.getElementById('enableGeyserCheck');
+    const floodgateCheck = document.getElementById('enableFloodgateCheck');
     const geyserPortGroup = document.getElementById('geyserPortGroup');
     const floodgateGroup = document.getElementById('floodgateGroup');
+    const floodgateIpsGroup = document.getElementById('floodgateIpsGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const geyserAuthGroup = document.getElementById('geyserAuthGroup');
     
@@ -95,11 +101,18 @@ function updateGeyserVisibility() {
         if (floodgateGroup) floodgateGroup.style.display = 'flex';
         if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'flex';
         if (geyserAuthGroup) geyserAuthGroup.style.display = 'flex';
+        
+        if (floodgateCheck && floodgateCheck.checked) {
+             if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'flex';
+        } else {
+             if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'none';
+        }
     } else {
         if (geyserPortGroup) geyserPortGroup.style.display = 'none';
         if (floodgateGroup) floodgateGroup.style.display = 'none';
         if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
         if (geyserAuthGroup) geyserAuthGroup.style.display = 'none';
+        if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'none';
     }
 }
 
@@ -309,6 +322,13 @@ export function updateSettings(config) {
     setCheck('enableGeyserCheck', config.enableGeyser);
     setCheck('autoUpdateGeyserCheck', config.autoUpdateGeyser);
     setCheck('enableFloodgateCheck', config.enableFloodgate);
+    
+    if (config.floodgateAllowedIps && Array.isArray(config.floodgateAllowedIps)) {
+        setVal('floodgateAllowedIpsInput', config.floodgateAllowedIps.join(', '));
+    } else {
+        setVal('floodgateAllowedIpsInput', '');
+    }
+
     setCheck('enableViaVersionCheck', config.enableViaVersion);
     updateGeyserVisibility();
 }
