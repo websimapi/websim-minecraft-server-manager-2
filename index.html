@@ -335,6 +335,16 @@
                                     <input type="text" id="floodgateAllowedIpsInput" placeholder="192.168.1.0/24, 10.0.0.0/8">
                                     <small class="text-muted">Comma-separated CIDR ranges to allow offline access (bypass Xbox auth). Requires 'Floodgate' Auth Type.</small>
                                 </div>
+                                <div class="form-group" id="floodgatePlayerLinkGroup" style="margin-left: 20px; display: none;">
+                                    <label>Enable Player Linking</label>
+                                    <input type="checkbox" id="floodgatePlayerLinkCheck">
+                                    <small class="text-muted">Allows Bedrock players to link their Java accounts (Global Linking).</small>
+                                </div>
+                                <div class="form-group" id="floodgateRequireLinkGroup" style="margin-left: 40px; display: none;">
+                                    <label>Require Linked Account</label>
+                                    <input type="checkbox" id="floodgateRequireLinkCheck">
+                                    <small class="text-muted">Bedrock players MUST link a Java account to join. Non-linked players are kicked.</small>
+                                </div>
                                 <div class="form-group">
                                     <label>Enable ViaVersion (Version Bridge)</label>
                                     <input type="checkbox" id="enableViaVersionCheck">

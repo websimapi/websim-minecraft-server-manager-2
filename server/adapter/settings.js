@@ -17,7 +17,8 @@ module.exports.updateSettings = function(settings) {
     const keysToCheck = [
         'serverType', 'minecraftVersion', 'maxPlayers', 'mcPort', 'geyserPort',
         'autoStart', 'enableGeyser', 'autoUpdateGeyser', 'geyserAuthType',
-        'enableFloodgate', 'floodgateAllowedIps', 'enableViaVersion'
+        'enableFloodgate', 'floodgateAllowedIps', 'floodgatePlayerLink', 'floodgateRequireLink', 
+        'enableViaVersion'
     ];
 
     keysToCheck.forEach(key => {
@@ -237,8 +238,8 @@ disconnect:
   invalid-key: Please connect through the official Geyser
   invalid-arguments-length: Expected {} arguments, got {}. Is Geyser up-to-date?
 player-link:
-  enabled: true
-  require-link: true
+  enabled: false
+  require-link: false
   enable-own-linking: false
   allowed: true
   link-code-timeout: 300
@@ -301,11 +302,11 @@ config-version: 3
         updateRegex(/^(username-prefix:\s*)(['"]?)(.*?)(['"]?)(\s*(?:#.*)?)$/m, '$1"."$5', 'Set Floodgate username-prefix');
         updateRegex(/^(replace-spaces:\s*)(true|false)/m, '$1true');
 
-        // 1. Ensure player-link enabled is TRUE
-        updateRegex(/(player-link:[\s\S]*?enabled?:\s*)(true|false)/, '$1true');
+        // 1. Ensure player-link enabled matches setting
+        updateRegex(/(player-link:[\s\S]*?enabled?:\s*)(true|false)/, `$1${this.config.floodgatePlayerLink || false}`);
 
-        // 2. Ensure require-link is TRUE (Enforce auth for external, bypass for allowed-ips)
-        updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, '$1true');
+        // 2. Ensure require-link matches setting
+        updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, `$1${this.config.floodgateRequireLink || false}`);
 
         // 3. Update Allowed IPs for offline access (Smart Set Comparison)
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {

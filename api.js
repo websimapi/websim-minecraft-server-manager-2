@@ -116,6 +116,8 @@ export function saveSettings() {
         autoUpdateGeyser: document.getElementById('autoUpdateGeyserCheck').checked,
         enableFloodgate: document.getElementById('enableFloodgateCheck').checked,
         floodgateAllowedIps: document.getElementById('floodgateAllowedIpsInput').value.split(',').map(s => s.trim()).filter(s => s),
+        floodgatePlayerLink: document.getElementById('floodgatePlayerLinkCheck').checked,
+        floodgateRequireLink: document.getElementById('floodgateRequireLinkCheck').checked,
         enableViaVersion: document.getElementById('enableViaVersionCheck').checked
     };
 

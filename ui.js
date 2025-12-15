@@ -62,7 +62,8 @@ function bindEventListeners() {
     const settingsIds = [
         'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
         'portInput', 'ramInput', 'geyserPortInput', 'autoStartCheck', 'enableGeyserCheck', 
-        'autoUpdateGeyserCheck', 'geyserAuthTypeSelect', 'enableFloodgateCheck', 'floodgateAllowedIpsInput', 'enableViaVersionCheck'
+        'autoUpdateGeyserCheck', 'geyserAuthTypeSelect', 'enableFloodgateCheck', 'floodgateAllowedIpsInput',
+        'floodgatePlayerLinkCheck', 'floodgateRequireLinkCheck', 'enableViaVersionCheck'
     ];
     settingsIds.forEach(id => {
         const el = document.getElementById(id);
@@ -75,11 +76,15 @@ function bindEventListeners() {
 
     const geyserCheck = document.getElementById('enableGeyserCheck');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
+    const floodgatePlayerLinkCheck = document.getElementById('floodgatePlayerLinkCheck');
     if (geyserCheck) {
         geyserCheck.addEventListener('change', updateGeyserVisibility);
     }
     if (floodgateCheck) {
         floodgateCheck.addEventListener('change', updateGeyserVisibility);
+    }
+    if (floodgatePlayerLinkCheck) {
+        floodgatePlayerLinkCheck.addEventListener('change', updateGeyserVisibility);
     }
     // Initial state
     updateGeyserVisibility();
@@ -88,9 +93,13 @@ function bindEventListeners() {
 function updateGeyserVisibility() {
     const geyserCheck = document.getElementById('enableGeyserCheck');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
+    const floodgatePlayerLinkCheck = document.getElementById('floodgatePlayerLinkCheck');
+    
     const geyserPortGroup = document.getElementById('geyserPortGroup');
     const floodgateGroup = document.getElementById('floodgateGroup');
     const floodgateIpsGroup = document.getElementById('floodgateIpsGroup');
+    const floodgatePlayerLinkGroup = document.getElementById('floodgatePlayerLinkGroup');
+    const floodgateRequireLinkGroup = document.getElementById('floodgateRequireLinkGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const geyserAuthGroup = document.getElementById('geyserAuthGroup');
     
@@ -104,8 +113,17 @@ function updateGeyserVisibility() {
         
         if (floodgateCheck && floodgateCheck.checked) {
              if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'flex';
+             if (floodgatePlayerLinkGroup) floodgatePlayerLinkGroup.style.display = 'flex';
+             
+             if (floodgatePlayerLinkCheck && floodgatePlayerLinkCheck.checked) {
+                 if (floodgateRequireLinkGroup) floodgateRequireLinkGroup.style.display = 'flex';
+             } else {
+                 if (floodgateRequireLinkGroup) floodgateRequireLinkGroup.style.display = 'none';
+             }
         } else {
              if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'none';
+             if (floodgatePlayerLinkGroup) floodgatePlayerLinkGroup.style.display = 'none';
+             if (floodgateRequireLinkGroup) floodgateRequireLinkGroup.style.display = 'none';
         }
     } else {
         if (geyserPortGroup) geyserPortGroup.style.display = 'none';
@@ -113,6 +131,8 @@ function updateGeyserVisibility() {
         if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
         if (geyserAuthGroup) geyserAuthGroup.style.display = 'none';
         if (floodgateIpsGroup) floodgateIpsGroup.style.display = 'none';
+        if (floodgatePlayerLinkGroup) floodgatePlayerLinkGroup.style.display = 'none';
+        if (floodgateRequireLinkGroup) floodgateRequireLinkGroup.style.display = 'none';
     }
 }
 
@@ -322,6 +342,8 @@ export function updateSettings(config) {
     setCheck('enableGeyserCheck', config.enableGeyser);
     setCheck('autoUpdateGeyserCheck', config.autoUpdateGeyser);
     setCheck('enableFloodgateCheck', config.enableFloodgate);
+    setCheck('floodgatePlayerLinkCheck', config.floodgatePlayerLink);
+    setCheck('floodgateRequireLinkCheck', config.floodgateRequireLink);
     
     if (config.floodgateAllowedIps && Array.isArray(config.floodgateAllowedIps)) {
         setVal('floodgateAllowedIpsInput', config.floodgateAllowedIps.join(', '));
