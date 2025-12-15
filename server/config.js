@@ -66,8 +66,8 @@ const geyserServerType = 'paper';
 /** @tweakable The compression level for zip backups (0-9). 9 is highest compression. */
 const backupCompressionLevel = 1; // Lowered for performance, 9 can be very slow
 
-/** @tweakable For Paper servers, this disables the plugin remapper which can sometimes cause issues with plugins like Geyser. */
-const disablePaperPluginRemapper = true;
+/** @tweakable For Paper servers, this disables the plugin remapper. FALSE is recommended for Paper 1.20.6+ and Geyser. */
+const disablePaperPluginRemapper = false;
 
 module.exports = {
     serverConfig,

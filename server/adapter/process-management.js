@@ -111,7 +111,7 @@ module.exports.setupProcessEventListeners = function() {
 
     this.minecraftProcess.stderr.on('data', (data) => {
         const output = data.toString();
-        this.broadcast({ type: 'console', message: `ERROR: ${output.trim()}` });
+        this.broadcast({ type: 'console', message: output.trim() });
     });
 
     this.minecraftProcess.on('exit', (code) => {

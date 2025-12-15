@@ -181,7 +181,12 @@ export function appendConsoleOutput(message, type = 'info') {
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = document.createElement('div');
     logEntry.className = `log-entry log-${type}`;
-    let formattedMessage = `[${timestamp}] ${message}`;
+    let formattedMessage = message;
+
+    // Only add timestamp if the message doesn't start with a timestamp-like pattern
+    if (!/^\[\d{1,2}:\d{2}:\d{2}/.test(message)) {
+        formattedMessage = `[${timestamp}] ${message}`;
+    }
 
     if (type === 'command') formattedMessage = `<span style="color: #60a5fa;">${formattedMessage}</span>`;
     else if (message.includes('ERROR')) formattedMessage = `<span style="color: #ef4444;">${formattedMessage}</span>`;
