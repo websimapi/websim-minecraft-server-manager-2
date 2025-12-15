@@ -33,8 +33,13 @@ module.exports.preparePlugins = async function() {
         const forceUpdate = this.config.autoUpdateGeyser === true;
         
         await this.downloadGeyserPlugin(forceUpdate);
+        
+        // Ensure configuration exists BEFORE server start to prevent defaults/race conditions
+        this.configureGeyser();
+
         if (this.config.enableFloodgate) {
             await this.downloadFloodgatePlugin(forceUpdate);
+            this.configureFloodgate();
         }
     }
     
