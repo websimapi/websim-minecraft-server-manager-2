@@ -21,7 +21,7 @@ let serverConfig = {
     /* @tweakable Automatically update Geyser/Floodgate on server start to match server version */
     autoUpdateGeyser: false,
     /* @tweakable Geyser Authentication Type (online, floodgate, offline) */
-    geyserAuthType: 'offline',
+    geyserAuthType: 'floodgate',
     /* @tweakable Enable Floodgate to allow Bedrock clients without a Java account */
     enableFloodgate: true,
     /* @tweakable Floodgate allowed IPs (offline bypass) */

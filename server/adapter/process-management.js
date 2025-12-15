@@ -64,8 +64,9 @@ module.exports.start = async function() {
             const floodgateChanged = this.config.enableFloodgate ? this.configureFloodgate() : false;
             
             if ((geyserChanged || floodgateChanged) && this.serverStatus === 'online') {
-                this.broadcast({ type: 'notification', message: 'Detected Geyser config generation. Applying settings and reloading...', level: 'info' });
-                this.sendCommand('geyser reload');
+                this.broadcast({ type: 'notification', message: 'Detected Geyser/Floodgate config generation. Restarting server to apply settings...', level: 'warning' });
+                // Full restart required for Floodgate settings to take effect properly
+                this.restart();
             }
         }, 15000);
     }

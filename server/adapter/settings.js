@@ -124,11 +124,12 @@ module.exports.configureGeyser = function() {
         }
 
         // Update Auth Type
-        // We prioritize the explicit user setting 'geyserAuthType' if present.
-        // Fallback: If Floodgate enabled, default to 'floodgate'. Else 'online'.
+        // If Floodgate is enabled, we prioritize 'floodgate' auth type to allow the hybrid setup.
         let desiredAuthType = this.config.geyserAuthType;
-        if (!desiredAuthType) {
-            desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
+        if (this.config.enableFloodgate) {
+            desiredAuthType = 'floodgate';
+        } else if (!desiredAuthType) {
+            desiredAuthType = 'online';
         }
 
         // Robust Regex: Look for 'remote:' block, then 'auth-type:' inside it.
@@ -204,18 +205,28 @@ module.exports.configureFloodgate = function() {
         // 3. Update Allowed IPs for offline access
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
              const ips = this.config.floodgateAllowedIps;
-             const blockMatch = content.match(/^allowed-ips:(?:\s*\[\]|\s*\n(?:\s+-.*)+|.*)/m);
              
-             if (blockMatch) {
-                  const currentBlock = blockMatch[0];
-                  // Construct new block
-                  const newString = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
-                  
-                  if (currentBlock.trim() !== newString.trim()) {
-                       content = content.replace(blockMatch[0], newString);
-                       changed = true;
-                       this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs whitelist', level: 'info' });
-                  }
+             // Construct new block
+             const newBlock = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+             
+             // Regex to find existing allowed-ips block, including comments and list items
+             // Matches "allowed-ips:" followed by optional "[]", comments, and then indented lines
+             const regex = /^allowed-ips:\s*(?:\[\])?(?:\s*#.*)*(?:\n(?:\s+-.*|(?:\s*#.*))*)*/m;
+             
+             // Simple fallback regex in case the complex one misses
+             const simpleRegex = /^allowed-ips:.*$/m;
+
+             let match = content.match(regex);
+             if (match && match[0].trim().length > 10) { // Ensure it matched more than just the key if content exists
+                 if (match[0].trim() !== newBlock.trim()) {
+                     content = content.replace(regex, newBlock);
+                     changed = true;
+                     this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs whitelist', level: 'info' });
+                 }
+             } else if (simpleRegex.test(content)) {
+                 content = content.replace(simpleRegex, newBlock);
+                 changed = true;
+                 this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs (simple)', level: 'info' });
              }
         }
 
