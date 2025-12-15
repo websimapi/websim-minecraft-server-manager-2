@@ -3,7 +3,8 @@ const fs = require('fs');
 
 /* @tweakable server configuration */
 let serverConfig = {
-    port: 3001,
+    bridgePort: 3001,
+    mcPort: 25565,
     minecraftDir: path.join(__dirname, '..', 'minecraft'),
     backupsDir: path.join(__dirname, '..', 'backups'),
     javaPath: 'java',
@@ -27,6 +28,19 @@ const configPath = path.join(__dirname, 'config.json');
 if (fs.existsSync(configPath)) {
     try {
         const savedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        
+        // Migration: Handle old 'port' config which conflated bridge and MC ports
+        if (savedConfig.port) {
+            if (savedConfig.port === 3001) {
+                savedConfig.bridgePort = 3001;
+            } else {
+                // If it's not 3001, it was likely the MC port
+                savedConfig.mcPort = savedConfig.port;
+                savedConfig.bridgePort = 3001; // Restore default bridge port to prevent crash
+            }
+            delete savedConfig.port;
+        }
+
         serverConfig = { ...serverConfig, ...savedConfig };
     } catch (e) {
         console.error("Error reading saved config.json, using defaults.", e);

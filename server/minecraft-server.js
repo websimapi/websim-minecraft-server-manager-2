@@ -50,7 +50,7 @@ class MinecraftServer {
         const serverPropsPath = path.join(this.config.minecraftDir, 'server.properties');
         if (!fs.existsSync(serverPropsPath)) {
             const defaultProps = `
-server-port=25565
+server-port=${this.config.mcPort || 25565}
 max-players=20
 online-mode=true
 white-list=false

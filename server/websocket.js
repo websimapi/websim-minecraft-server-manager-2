@@ -31,8 +31,8 @@ function setupWebSocket(serverInstance) {
         });
     });
 
-    server.listen(serverInstance.config.port, () => {
-        console.log(`Server running on http://localhost:${serverInstance.config.port}`);
+    server.listen(serverInstance.config.bridgePort, () => {
+        console.log(`Server running on http://localhost:${serverInstance.config.bridgePort}`);
     });
 }
 

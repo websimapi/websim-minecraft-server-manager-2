@@ -108,7 +108,7 @@ export function saveSettings() {
         serverType: document.getElementById('serverTypeSelect').value,
         minecraftVersion: document.getElementById('minecraftVersionInput').value.trim() || 'latest',
         maxPlayers: parseInt(document.getElementById('maxPlayersInput').value, 10),
-        port: parseInt(document.getElementById('portInput').value, 10),
+        mcPort: parseInt(document.getElementById('portInput').value, 10),
         ram: parseInt(document.getElementById('ramInput').value, 10),
         autoStart: document.getElementById('autoStartCheck').checked,
         enableGeyser: document.getElementById('enableGeyserCheck').checked,

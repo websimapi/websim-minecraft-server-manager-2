@@ -46,6 +46,19 @@ function bindEventListeners() {
     document.getElementById('uploadFileBtn').addEventListener('click', () => document.getElementById('fileUpload').click());
     document.getElementById('fileUpload').addEventListener('change', (e) => apiHandler.uploadFile(e.target.files[0]));
 
+    // Update port defaults when server type changes
+    const serverTypeSelect = document.getElementById('serverTypeSelect');
+    if (serverTypeSelect) {
+        serverTypeSelect.addEventListener('change', () => {
+            const portInput = document.getElementById('portInput');
+            if (serverTypeSelect.value === 'bedrock') {
+                portInput.value = 19132;
+            } else {
+                portInput.value = 25565;
+            }
+        });
+    }
+
     const settingsIds = [
         'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
         'portInput', 'ramInput', 'autoStartCheck', 'enableGeyserCheck', 
@@ -273,7 +286,7 @@ export function updateSettings(config) {
     setVal('serverTypeSelect', config.serverType);
     setVal('minecraftVersionInput', config.minecraftVersion);
     setVal('maxPlayersInput', config.maxPlayers);
-    setVal('portInput', config.port);
+    setVal('portInput', config.mcPort || 25565);
 
     // Parse RAM string (e.g. "2G", "2048M") to integer MB
     let ramVal = 2048;
