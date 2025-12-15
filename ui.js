@@ -86,18 +86,27 @@ function updateGeyserVisibility() {
     const floodgateGroup = document.getElementById('floodgateGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
+    const autoUpdateGeyserCheck = document.getElementById('autoUpdateGeyserCheck');
 
     if (!geyserCheck) return;
+    
+    const geyserEnabled = geyserCheck.checked;
 
-    if (geyserCheck.checked) {
-        if (floodgateGroup) floodgateGroup.style.display = 'flex';
-        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'flex';
-    } else {
-        if (floodgateGroup) floodgateGroup.style.display = 'none';
-        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
-        // Only uncheck floodgate if user interaction caused this change (which usually triggers this function),
-        // or if explicitly called.
-        if (floodgateCheck) floodgateCheck.checked = false;
+    if (floodgateGroup) {
+        floodgateGroup.style.opacity = geyserEnabled ? '1' : '0.5';
+        floodgateGroup.style.pointerEvents = geyserEnabled ? 'auto' : 'none';
+    }
+    if (floodgateCheck) {
+        floodgateCheck.disabled = !geyserEnabled;
+        if (!geyserEnabled) floodgateCheck.checked = false;
+    }
+
+    if (autoUpdateGeyserGroup) {
+        autoUpdateGeyserGroup.style.opacity = geyserEnabled ? '1' : '0.5';
+        autoUpdateGeyserGroup.style.pointerEvents = geyserEnabled ? 'auto' : 'none';
+    }
+    if (autoUpdateGeyserCheck) {
+        autoUpdateGeyserCheck.disabled = !geyserEnabled;
     }
 }
 
