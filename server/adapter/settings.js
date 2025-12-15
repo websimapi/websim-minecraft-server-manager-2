@@ -176,6 +176,29 @@ remote:
             fs.writeFileSync(geyserConfigPath, configContent, 'utf8');
             this.broadcast({ type: 'notification', message: 'Geyser configuration updated.', level: 'success' });
         }
+
+        // Auto-fix: Copy key.pem from Floodgate to Geyser if missing
+        if (this.config.enableFloodgate) {
+            const geyserKeyPath = path.join(path.dirname(geyserConfigPath), 'key.pem');
+            
+            // Check possible Floodgate locations
+            const floodgateKeyPaths = [
+                path.join(this.config.minecraftDir, 'plugins', 'floodgate', 'key.pem'),
+                path.join(this.config.minecraftDir, 'plugins', 'floodgate-spigot', 'key.pem')
+            ];
+            
+            const existingKeyPath = floodgateKeyPaths.find(p => fs.existsSync(p));
+            
+            if (existingKeyPath && !fs.existsSync(geyserKeyPath)) {
+                try {
+                    fs.copyFileSync(existingKeyPath, geyserKeyPath);
+                    this.broadcast({ type: 'notification', message: 'Copied key.pem from Floodgate to Geyser folder.', level: 'success' });
+                } catch (e) {
+                    console.error('Failed to copy key.pem:', e);
+                }
+            }
+        }
+
         return changed;
     } catch (error) {
         console.error(`Failed to configure Geyser: ${error}`);
@@ -235,15 +258,27 @@ config-version: 3
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
-        // 1. Fix known corruption artifacts (e.g. concatenated lines like '- "ip"- "ip"')
-        // We use a loop to catch multiple occurrences or chained corruptions
+        // 1. Fix known corruption artifacts
         let corruptionFixed = false;
+
+        // Case A: concatenated list items '- "ip"- "ip"'
         while (content.match(/- ".*?"- "/)) {
             const newContent = content.replace(/- "(.*?)"- "(.*?)"/g, '- "$1"\n  - "$2"');
-            if (newContent === content) break; // Should not happen if match passed, but safety break
+            if (newContent === content) break;
             content = newContent;
             corruptionFixed = true;
         }
+
+        // Case B: concatenated key after list item '- "ip"next-key:'
+        // This handles the specific formatting bug where a newline was missing before the next section
+        if (content.match(/- ".*?"[a-z-]+:/)) {
+             const newContent = content.replace(/(- ".*?")([a-z-]+:)/g, '$1\n$2');
+             if (newContent !== content) {
+                 content = newContent;
+                 corruptionFixed = true;
+             }
+        }
+
         if (corruptionFixed) {
             changed = true;
             this.broadcast({ type: 'notification', message: 'Fixed malformed Floodgate config.', level: 'warning' });
@@ -276,8 +311,9 @@ config-version: 3
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
              const desiredIps = new Set(this.config.floodgateAllowedIps.map(ip => ip.trim()).filter(ip => ip.length > 0));
              
-             // Robust block matching: Find 'allowed-ips:' and capture everything up to the next root key
-             const ipRegex = /^allowed-ips:(\s*(-.*(\r?\n)?)*)*/m;
+             // Robust block matching: Find 'allowed-ips:' block
+             // Matches either inline [] or multiline indented list
+             const ipRegex = /^allowed-ips:(?:\s*\[.*?\]|(?:\s*\r?\n\s*-\s+.*)+)/m;
              const match = content.match(ipRegex);
              
              let needsUpdate = false;
@@ -285,11 +321,9 @@ config-version: 3
              if (match) {
                  const existingBlock = match[0];
                  const extractedIps = [];
-                 // More permissive regex to catch messy formatting
                  const lineRegex = /-\s*["']?([^"'\r\n]+?)["']?\s*$/gm;
                  let m;
                  while ((m = lineRegex.exec(existingBlock)) !== null) {
-                     // Remove potential trailing quotes if regex didn't catch them cleanly
                      let ip = m[1].replace(/["']$/, '').trim();
                      extractedIps.push(ip);
                  }
@@ -312,7 +346,8 @@ config-version: 3
 
              if (needsUpdate) {
                  const ipList = [...desiredIps];
-                 const newBlock = `allowed-ips:${ipList.length > 0 ? '\n' + ipList.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+                 // Crucial: Append \n to the block to ensure separation from the next key
+                 const newBlock = `allowed-ips:${ipList.length > 0 ? '\n' + ipList.map(ip => `  - "${ip}"`).join('\n') : ' []'}\n`;
                  
                  if (match) {
                      // Replace only the matched block
@@ -320,7 +355,7 @@ config-version: 3
                  } else {
                      // Append if missing, ensuring newline
                      if (!content.includes('allowed-ips:')) {
-                         content += `\n${newBlock}\n`;
+                         content += `\n${newBlock}`;
                      }
                  }
                  changed = true;
