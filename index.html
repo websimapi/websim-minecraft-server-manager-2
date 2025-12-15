@@ -287,36 +287,41 @@
                                     <small class="text-muted">Set to "latest" or specific version like "1.21.4". Restart required.</small>
                                 </div>
                                 <div class="form-group">
-                                    <label>Max Players (default: 20)</label>
+                                    <label>Max Players (Default: 20)</label>
                                     <input type="number" id="maxPlayersInput" min="1" max="100" value="20">
                                 </div>
                                 <div class="form-group">
-                                    <label>Server Port (default: 25565)</label>
+                                    <label>Server Port (Default: 25565)</label>
                                     <input type="number" id="portInput" min="1" max="65535" value="25565">
                                 </div>
                                 <div class="form-group">
-                                    <label>RAM Allocation (MB) (default: 2048)</label>
+                                    <label>RAM Allocation (MB) (Default: 2048)</label>
                                     <input type="number" id="ramInput" min="512" max="8192" value="2048">
                                 </div>
                                 <div class="form-group">
-                                    <label>Auto-start on Boot (default: off)</label>
+                                    <label>Auto-start on Boot</label>
                                     <input type="checkbox" id="autoStartCheck">
                                 </div>
                                 <div class="form-group">
-                                    <label>Enable Geyser (Bedrock Support) (default: off)</label>
+                                    <label>Enable Geyser (Bedrock Support)</label>
                                     <input type="checkbox" id="enableGeyserCheck">
                                 </div>
-                                <div class="form-group" id="autoUpdateGeyserGroup" style="margin-left: 20px; font-size: 0.9em;">
-                                    <label>Auto-update Geyser & Floodgate (default: on)</label>
+                                <div class="form-group" id="geyserPortGroup" style="margin-left: 20px; display: none;">
+                                    <label>Geyser Port (Bedrock) (Default: 19132)</label>
+                                    <input type="number" id="geyserPortInput" min="1" max="65535" value="19132">
+                                    <small class="text-muted">UDP Port for Bedrock clients.</small>
+                                </div>
+                                <div class="form-group" id="autoUpdateGeyserGroup" style="margin-left: 20px; font-size: 0.9em; display: none;">
+                                    <label>Auto-update Geyser & Floodgate</label>
                                     <input type="checkbox" id="autoUpdateGeyserCheck" checked>
                                     <small class="text-muted">Recommended: Fetches latest build on every start to fix bugs.</small>
                                 </div>
                                 <div class="form-group" id="floodgateGroup">
-                                    <label>Enable Floodgate (Bedrock Offline-Mode) (default: off)</label>
+                                    <label>Enable Floodgate (Bedrock Offline-Mode)</label>
                                     <input type="checkbox" id="enableFloodgateCheck">
                                 </div>
                                 <div class="form-group">
-                                    <label>Enable ViaVersion (Version Bridge) (default: off)</label>
+                                    <label>Enable ViaVersion (Version Bridge)</label>
                                     <input type="checkbox" id="enableViaVersionCheck">
                                     <small class="text-muted">Allows clients on different versions to connect. Recommended.</small>
                                 </div>

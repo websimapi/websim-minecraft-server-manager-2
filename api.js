@@ -110,6 +110,7 @@ export function saveSettings() {
         maxPlayers: parseInt(document.getElementById('maxPlayersInput').value, 10),
         mcPort: parseInt(document.getElementById('portInput').value, 10),
         ram: parseInt(document.getElementById('ramInput').value, 10),
+        geyserPort: parseInt(document.getElementById('geyserPortInput').value, 10),
         autoStart: document.getElementById('autoStartCheck').checked,
         enableGeyser: document.getElementById('enableGeyserCheck').checked,
         autoUpdateGeyser: document.getElementById('autoUpdateGeyserCheck').checked,

@@ -61,7 +61,7 @@ function bindEventListeners() {
 
     const settingsIds = [
         'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
-        'portInput', 'ramInput', 'autoStartCheck', 'enableGeyserCheck', 
+        'portInput', 'ramInput', 'geyserPortInput', 'autoStartCheck', 'enableGeyserCheck', 
         'autoUpdateGeyserCheck', 'enableFloodgateCheck', 'enableViaVersionCheck'
     ];
     settingsIds.forEach(id => {
@@ -83,30 +83,24 @@ function bindEventListeners() {
 
 function updateGeyserVisibility() {
     const geyserCheck = document.getElementById('enableGeyserCheck');
+    const geyserPortGroup = document.getElementById('geyserPortGroup');
     const floodgateGroup = document.getElementById('floodgateGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
-    const autoUpdateGeyserCheck = document.getElementById('autoUpdateGeyserCheck');
 
     if (!geyserCheck) return;
-    
-    const geyserEnabled = geyserCheck.checked;
 
-    if (floodgateGroup) {
-        floodgateGroup.style.opacity = geyserEnabled ? '1' : '0.5';
-        floodgateGroup.style.pointerEvents = geyserEnabled ? 'auto' : 'none';
-    }
-    if (floodgateCheck) {
-        floodgateCheck.disabled = !geyserEnabled;
-        if (!geyserEnabled) floodgateCheck.checked = false;
-    }
-
-    if (autoUpdateGeyserGroup) {
-        autoUpdateGeyserGroup.style.opacity = geyserEnabled ? '1' : '0.5';
-        autoUpdateGeyserGroup.style.pointerEvents = geyserEnabled ? 'auto' : 'none';
-    }
-    if (autoUpdateGeyserCheck) {
-        autoUpdateGeyserCheck.disabled = !geyserEnabled;
+    if (geyserCheck.checked) {
+        if (geyserPortGroup) geyserPortGroup.style.display = 'flex';
+        if (floodgateGroup) floodgateGroup.style.display = 'flex';
+        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'flex';
+    } else {
+        if (geyserPortGroup) geyserPortGroup.style.display = 'none';
+        if (floodgateGroup) floodgateGroup.style.display = 'none';
+        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
+        // Only uncheck floodgate if user interaction caused this change (which usually triggers this function),
+        // or if explicitly called.
+        if (floodgateCheck) floodgateCheck.checked = false;
     }
 }
 
@@ -296,6 +290,7 @@ export function updateSettings(config) {
     setVal('minecraftVersionInput', config.minecraftVersion);
     setVal('maxPlayersInput', config.maxPlayers);
     setVal('portInput', config.mcPort || 25565);
+    setVal('geyserPortInput', config.geyserPort || 19132);
 
     // Parse RAM string (e.g. "2G", "2048M") to integer MB
     let ramVal = 2048;

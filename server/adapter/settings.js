@@ -15,7 +15,7 @@ module.exports.updateSettings = function(settings) {
     
     // Merge other settings
     const keysToCheck = [
-        'serverType', 'minecraftVersion', 'maxPlayers', 'mcPort', 
+        'serverType', 'minecraftVersion', 'maxPlayers', 'mcPort', 'geyserPort',
         'autoStart', 'enableGeyser', 'autoUpdateGeyser', 
         'enableFloodgate', 'enableViaVersion'
     ];
@@ -35,6 +35,8 @@ module.exports.updateSettings = function(settings) {
     
     if (settings.mcPort || settings.maxPlayers) this.updateServerProperties(settings);
     
+    if (settings.geyserPort || settings.enableGeyser || settings.enableFloodgate) this.configureGeyser();
+
     this.broadcast({ type: 'notification', message: 'Settings updated successfully. A restart is required for some changes to take effect.', level: 'success' });
     this.broadcast({ type: 'settings', config: this.config });
 };
@@ -50,7 +52,7 @@ module.exports.updateServerProperties = function(settings) {
 };
 
 module.exports.configureGeyser = function() {
-    if (!this.config.enableGeyser || !this.config.enableFloodgate) return;
+    if (!this.config.enableGeyser) return;
 
     const geyserConfigPath = path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml');
     if (!fs.existsSync(geyserConfigPath)) {
@@ -60,19 +62,31 @@ module.exports.configureGeyser = function() {
 
     try {
         let configContent = fs.readFileSync(geyserConfigPath, 'utf8');
-        const targetAuthType = 'floodgate';
-        const authTypeRegex  = /auth-type:\s*\w+/;
+        let changed = false;
 
-        if (/auth-type:\s*floodgate/.test(configContent)) return;
-        if (authTypeRegex.test(configContent)) {
-            configContent = configContent.replace(authTypeRegex, `auth-type: ${targetAuthType}`);
-        } else {
-            this.broadcast({ type: 'error', message: 'Could not find "auth-type" in Geyser config.' });
-            return;
+        // Update Port
+        if (this.config.geyserPort) {
+            const bedrockPortRegex = /(bedrock:[\s\S]*?port:\s*)(\d+)/;
+            const match = configContent.match(bedrockPortRegex);
+            if (match && match[2] !== String(this.config.geyserPort)) {
+                configContent = configContent.replace(bedrockPortRegex, `$1${this.config.geyserPort}`);
+                changed = true;
+            }
         }
 
-        fs.writeFileSync(geyserConfigPath, configContent, 'utf8');
-        this.broadcast({ type: 'notification', message: 'Geyser config updated for Floodgate. A server restart is recommended.', level: 'success' });
+        // Update Auth Type if Floodgate is enabled
+        if (this.config.enableFloodgate) {
+            const authTypeRegex  = /auth-type:\s*\w+/;
+            if (!/auth-type:\s*floodgate/.test(configContent) && authTypeRegex.test(configContent)) {
+                 configContent = configContent.replace(authTypeRegex, `auth-type: floodgate`);
+                 changed = true;
+            }
+        }
+
+        if (changed) {
+            fs.writeFileSync(geyserConfigPath, configContent, 'utf8');
+            this.broadcast({ type: 'notification', message: 'Geyser configuration updated.', level: 'success' });
+        }
     } catch (error) {
         console.error(`Failed to configure Geyser: ${error}`);
         this.broadcast({ type: 'error', message: `Failed to auto-configure Geyser: ${error.message}` });
