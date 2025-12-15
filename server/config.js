@@ -25,7 +25,7 @@ let serverConfig = {
     /* @tweakable Enable Floodgate to allow Bedrock clients without a Java account */
     enableFloodgate: true,
     /* @tweakable Floodgate allowed IPs (offline bypass) */
-    floodgateAllowedIps: ['192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12', '127.0.0.1'],
+    floodgateAllowedIps: ['192.168.5.0/24', '192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12', '127.0.0.1'],
     /* @tweakable Enable ViaVersion to allow older/newer client connections */
     enableViaVersion: false
 };

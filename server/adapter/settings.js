@@ -183,50 +183,64 @@ module.exports.configureFloodgate = function() {
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
-        // 1. Ensure player-link enabled is TRUE
-        // Matches 'enable' or 'enabled' to support different config versions
-        const playerLinkRegex = /(player-link:[\s\S]*?enable(?:d)?:\s*)(true|false)/;
-        const plMatch = content.match(playerLinkRegex);
-        if (plMatch && plMatch[2] === 'false') {
-            content = content.replace(playerLinkRegex, '$1true');
-            changed = true;
-            this.broadcast({ type: 'notification', message: 'Enabled Floodgate player-link', level: 'info' });
+        // Helper to update simple values
+        const updateRegex = (regex, replacement, message) => {
+            if (regex.test(content)) {
+                const newContent = content.replace(regex, replacement);
+                if (newContent !== content) {
+                    content = newContent;
+                    changed = true;
+                    if (message) this.broadcast({ type: 'notification', message, level: 'info' });
+                }
+            }
+        };
+
+        // 0. Base Configuration
+        updateRegex(/^(key-file-name:\s*).*$/m, '$1key.pem', 'Set Floodgate key-file-name');
+        
+        // Force username-prefix to "." (handle quotes/no-quotes)
+        const prefixRegex = /^(username-prefix:\s*)(['"]?)(.*?)(['"]?)(\s*(?:#.*)?)$/m;
+        if (prefixRegex.test(content)) {
+            const match = content.match(prefixRegex);
+            if (match[3] !== '.') {
+                content = content.replace(prefixRegex, '$1"."$5');
+                changed = true;
+                this.broadcast({ type: 'notification', message: 'Set Floodgate username-prefix to "."', level: 'info' });
+            }
         }
 
+        updateRegex(/^(replace-spaces:\s*)(true|false)/m, '$1true', 'Set Floodgate replace-spaces to true');
+
+        // 1. Ensure player-link enabled is TRUE
+        updateRegex(/(player-link:[\s\S]*?enable(?:d)?:\s*)(true|false)/, '$1true', 'Enabled Floodgate player-link');
+
         // 2. Ensure require-link is TRUE (Enforce auth for external, bypass for allowed-ips)
-        const requireLinkRegex = /(player-link:[\s\S]*?require-link:\s*)(true|false)/;
-        const rlMatch = content.match(requireLinkRegex);
-        if (rlMatch && rlMatch[2] === 'false') {
-            content = content.replace(requireLinkRegex, '$1true');
-            changed = true;
-            this.broadcast({ type: 'notification', message: 'Enabled Floodgate require-link (Auth required for non-LAN)', level: 'info' });
-        }
+        updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, '$1true', 'Enabled Floodgate require-link (Auth required for non-LAN)');
 
         // 3. Update Allowed IPs for offline access
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
              const ips = this.config.floodgateAllowedIps;
-             
-             // Construct new block
              const newBlock = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
              
-             // Regex to find existing allowed-ips block, including comments and list items
-             // Matches "allowed-ips:" followed by optional "[]", comments, and then indented lines
-             const regex = /^allowed-ips:\s*(?:\[\])?(?:\s*#.*)*(?:\n(?:\s+-.*|(?:\s*#.*))*)*/m;
+             // Robust regex to match the allowed-ips block until the next root key
+             // Matches "allowed-ips:" followed by lines that are indented or comments/empty
+             const regex = /^allowed-ips:\s*(?:\[\])?(?:\s*#.*)*(?:\r?\n(?:[ \t]+.*(?:\r?\n|$)|[ \t]*#.*(?:\r?\n|$))*)*/m;
              
-             // Simple fallback regex in case the complex one misses
-             const simpleRegex = /^allowed-ips:.*$/m;
-
-             let match = content.match(regex);
-             if (match && match[0].trim().length > 10) { // Ensure it matched more than just the key if content exists
+             const match = content.match(regex);
+             if (match) {
                  if (match[0].trim() !== newBlock.trim()) {
                      content = content.replace(regex, newBlock);
                      changed = true;
                      this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs whitelist', level: 'info' });
                  }
-             } else if (simpleRegex.test(content)) {
-                 content = content.replace(simpleRegex, newBlock);
-                 changed = true;
-                 this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs (simple)', level: 'info' });
+             } else {
+                 // Fallback if regex fails (unlikely)
+                 const simpleRegex = /^allowed-ips:.*$/m;
+                 if (simpleRegex.test(content)) {
+                     content = content.replace(simpleRegex, newBlock);
+                     changed = true;
+                     this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs', level: 'info' });
+                 }
              }
         }
 
