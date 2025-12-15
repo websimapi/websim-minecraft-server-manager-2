@@ -48,20 +48,29 @@ module.exports.updateServerProperties = function(settings) {
         let changed = false;
 
         if (settings.mcPort) {
-            content = content.replace(/server-port=\d*/, `server-port=${settings.mcPort}`);
-            changed = true;
+            const portRegex = /^server-port=\d*/m;
+            if (portRegex.test(content)) {
+                content = content.replace(portRegex, `server-port=${settings.mcPort}`);
+                changed = true;
+            }
         }
         if (settings.maxPlayers) {
-            content = content.replace(/max-players=\d*/, `max-players=${settings.maxPlayers}`);
-            changed = true;
+            const maxPlayersRegex = /^max-players=\d*/m;
+            if (maxPlayersRegex.test(content)) {
+                content = content.replace(maxPlayersRegex, `max-players=${settings.maxPlayers}`);
+                changed = true;
+            }
         }
         
         // If Floodgate is enabled, ensure server is in offline mode to allow 'offline' auth-type from Geyser to work
         // without authentication errors from the Java server.
         if (this.config.enableFloodgate) {
-            if (content.includes('online-mode=true')) {
-                content = content.replace('online-mode=true', 'online-mode=false');
-                changed = true;
+            const onlineModeRegex = /^online-mode=.*$/m;
+            if (onlineModeRegex.test(content)) {
+                if (!content.match(/^online-mode=false$/m)) {
+                    content = content.replace(onlineModeRegex, 'online-mode=false');
+                    changed = true;
+                }
             }
         }
 
@@ -74,8 +83,15 @@ module.exports.updateServerProperties = function(settings) {
 module.exports.configureGeyser = function() {
     if (!this.config.enableGeyser) return;
 
-    const geyserConfigPath = path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml');
-    if (!fs.existsSync(geyserConfigPath)) {
+    // Check possible config locations
+    const possiblePaths = [
+        path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml'),
+        path.join(this.config.minecraftDir, 'plugins', 'Geyser', 'config.yml')
+    ];
+
+    const geyserConfigPath = possiblePaths.find(p => fs.existsSync(p));
+
+    if (!geyserConfigPath) {
         this.broadcast({ type: 'notification', message: 'Geyser config not found. Waiting for it to be generated.', level: 'warning' });
         return;
     }
@@ -95,20 +111,29 @@ module.exports.configureGeyser = function() {
         }
 
         // Update Auth Type based on Floodgate setting
-        const authTypeRegex = /(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+        // Use strict regex to avoid partial matches
+        const authTypeRegex = /^(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/m;
         const match = configContent.match(authTypeRegex);
         
         if (match) {
             const currentAuthType = match[3];
-            // If Floodgate is enabled, we set 'offline' to bypass Xbox login as requested.
-            // Normally 'floodgate' is used, but that enforces Xbox login.
             // 'offline' allows Bedrock clients to join without signing into Xbox.
             const desiredAuthType = this.config.enableFloodgate ? 'offline' : 'online';
             
             if (currentAuthType !== desiredAuthType) {
                 configContent = configContent.replace(authTypeRegex, `$1${desiredAuthType}`);
                 changed = true;
+                this.broadcast({ type: 'notification', message: `Updated Geyser auth-type to: ${desiredAuthType}`, level: 'info' });
             }
+        } else {
+             // Fallback for non-multiline matching just in case
+             const fallbackRegex = /(\s*auth-type:\s*)(['"]?)(\w+)(['"]?)/;
+             if (fallbackRegex.test(configContent)) {
+                 const desiredAuthType = this.config.enableFloodgate ? 'offline' : 'online';
+                 configContent = configContent.replace(fallbackRegex, `$1${desiredAuthType}`);
+                 changed = true;
+                 this.broadcast({ type: 'notification', message: `Updated Geyser auth-type (fallback) to: ${desiredAuthType}`, level: 'info' });
+             }
         }
 
         if (changed) {
