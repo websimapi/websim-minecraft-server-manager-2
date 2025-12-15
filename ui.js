@@ -61,24 +61,31 @@ function bindEventListeners() {
     document.getElementById('forceKillBtn').addEventListener('click', () => apiHandler.forceKillServer());
 
     const geyserCheck = document.getElementById('enableGeyserCheck');
+    if (geyserCheck) {
+        geyserCheck.addEventListener('change', updateGeyserVisibility);
+        // Initial state
+        updateGeyserVisibility();
+    }
+}
+
+function updateGeyserVisibility() {
+    const geyserCheck = document.getElementById('enableGeyserCheck');
     const floodgateGroup = document.getElementById('floodgateGroup');
     const autoUpdateGeyserGroup = document.getElementById('autoUpdateGeyserGroup');
     const floodgateCheck = document.getElementById('enableFloodgateCheck');
-    
-    const toggleGeyserOptions = () => {
-        if (geyserCheck.checked) {
-            floodgateGroup.style.display = 'flex';
-            autoUpdateGeyserGroup.style.display = 'flex';
-        } else {
-            floodgateGroup.style.display = 'none';
-            autoUpdateGeyserGroup.style.display = 'none';
-            floodgateCheck.checked = false;
-        }
-    };
 
-    geyserCheck.addEventListener('change', toggleGeyserOptions);
-    // Initial state
-    toggleGeyserOptions();
+    if (!geyserCheck) return;
+
+    if (geyserCheck.checked) {
+        if (floodgateGroup) floodgateGroup.style.display = 'flex';
+        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'flex';
+    } else {
+        if (floodgateGroup) floodgateGroup.style.display = 'none';
+        if (autoUpdateGeyserGroup) autoUpdateGeyserGroup.style.display = 'none';
+        // Only uncheck floodgate if user interaction caused this change (which usually triggers this function),
+        // or if explicitly called.
+        if (floodgateCheck) floodgateCheck.checked = false;
+    }
 }
 
 export function initialize(api) {
@@ -260,7 +267,6 @@ export function updateSettings(config) {
         const el = document.getElementById(id);
         if (el) {
             el.checked = !!val;
-            if (id === 'enableGeyserCheck') el.dispatchEvent(new Event('change'));
         }
     };
 
@@ -287,4 +293,5 @@ export function updateSettings(config) {
     setCheck('autoUpdateGeyserCheck', config.autoUpdateGeyser);
     setCheck('enableFloodgateCheck', config.enableFloodgate);
     setCheck('enableViaVersionCheck', config.enableViaVersion);
+    updateGeyserVisibility();
 }

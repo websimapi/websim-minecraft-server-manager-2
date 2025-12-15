@@ -2,13 +2,32 @@ const fs   = require('fs');
 const path = require('path');
 
 module.exports.updateSettings = function(settings) {
+    let changed = false;
+
     // Handle RAM conversion from MB (int) to String with suffix
     if (settings.ram) {
-        this.config.maxRam = `${settings.ram}M`;
+        const newRam = `${settings.ram}M`;
+        if (this.config.maxRam !== newRam) {
+            this.config.maxRam = newRam;
+            changed = true;
+        }
     }
     
     // Merge other settings
-    this.config = { ...this.config, ...settings };
+    const keysToCheck = [
+        'serverType', 'minecraftVersion', 'maxPlayers', 'port', 
+        'autoStart', 'enableGeyser', 'autoUpdateGeyser', 
+        'enableFloodgate', 'enableViaVersion'
+    ];
+
+    keysToCheck.forEach(key => {
+        if (settings[key] !== undefined && this.config[key] !== settings[key]) {
+            this.config[key] = settings[key];
+            changed = true;
+        }
+    });
+
+    if (!changed) return;
     
     // Persist to config.json
     // We filter out complex objects or temporary state if any, but config is mostly flat
