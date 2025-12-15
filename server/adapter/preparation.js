@@ -29,8 +29,26 @@ module.exports.preparePlugins = async function() {
         fs.mkdirSync(pluginsDir, { recursive: true });
     }
     if (this.config.enableGeyser) {
-        // Only force update if explicitly true. Default is now false to prevent overwriting user changes or wasting bandwidth
-        const forceUpdate = this.config.autoUpdateGeyser === true;
+        // Only force update if explicitly true AND file is old or missing
+        // This prevents re-downloading on every restart loop
+        let forceUpdate = this.config.autoUpdateGeyser === true;
+        
+        if (forceUpdate) {
+            const geyserPath = path.join(pluginsDir, this.downloadConfig.geyser.filename);
+            if (fs.existsSync(geyserPath)) {
+                try {
+                    const stats = fs.statSync(geyserPath);
+                    const ageMinutes = (Date.now() - stats.mtimeMs) / 1000 / 60;
+                    // If file is less than 60 minutes old, assume it's fresh enough for this session
+                    if (ageMinutes < 60) {
+                        forceUpdate = false;
+                        this.broadcast({ type: 'notification', message: 'Geyser is up-to-date (cached).', level: 'info' });
+                    }
+                } catch (e) {
+                    console.error('Error checking file age:', e);
+                }
+            }
+        }
         
         await this.downloadGeyserPlugin(forceUpdate);
         
@@ -44,7 +62,8 @@ module.exports.preparePlugins = async function() {
     }
     
     if (this.config.enableViaVersion) {
-        const forceUpdate = this.config.autoUpdateGeyser !== false;
+        const forceUpdate = this.config.autoUpdateGeyser !== false; // Reuse setting or separate? Reusing for now.
+        // Similar cache check for ViaVersion if needed, but it's less critical.
         await this.downloadViaVersionPlugin(forceUpdate);
     }
 };

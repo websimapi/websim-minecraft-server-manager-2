@@ -250,29 +250,57 @@ config-version: 3
         // 2. Ensure require-link is TRUE (Enforce auth for external, bypass for allowed-ips)
         updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, '$1true');
 
-        // 3. Update Allowed IPs for offline access (Robust Regex)
+        // 3. Update Allowed IPs for offline access (Smart Set Comparison)
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
-             const ips = this.config.floodgateAllowedIps;
-             const newBlock = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+             const desiredIps = new Set(this.config.floodgateAllowedIps.filter(ip => ip.trim().length > 0));
              
              // Match 'allowed-ips:' block until the next root-level key (start of line word followed by colon)
-             // or end of string. This prevents corruption of subsequent sections.
+             // or end of string. 
              const ipRegex = /^allowed-ips:[\s\S]*?(?=^[\w-]+:|$)/m;
-             
              const match = content.match(ipRegex);
+             
+             let needsUpdate = false;
+             
              if (match) {
-                 if (match[0].trim() !== newBlock.trim()) {
-                     content = content.replace(ipRegex, newBlock + '\n');
-                     changed = true;
-                     this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs', level: 'info' });
+                 // Parse existing IPs from the block to avoid fighting formatting changes (e.g. plugin adding indentation/comments)
+                 const existingBlock = match[0];
+                 const extractedIps = [];
+                 // Look for patterns like: - "127.0.0.1" or - 127.0.0.1
+                 const lineRegex = /-\s*["']?([^"'\s]+)["']?/g;
+                 let m;
+                 while ((m = lineRegex.exec(existingBlock)) !== null) {
+                     extractedIps.push(m[1]);
+                 }
+                 const existingSet = new Set(extractedIps);
+                 
+                 // Compare sets for semantic equality
+                 if (desiredIps.size !== existingSet.size) {
+                     needsUpdate = true;
+                 } else {
+                     for (const ip of desiredIps) {
+                         if (!existingSet.has(ip)) {
+                             needsUpdate = true;
+                             break;
+                         }
+                     }
                  }
              } else {
-                 // Fallback: Append to end if missing and not matched
-                 if (!content.includes('allowed-ips:')) {
-                     content += `\n${newBlock}\n`;
-                     changed = true;
-                     this.broadcast({ type: 'notification', message: 'Appended Floodgate Allowed IPs', level: 'info' });
+                 needsUpdate = true; // Block missing completely
+             }
+
+             if (needsUpdate) {
+                 const newBlock = `allowed-ips:${desiredIps.size > 0 ? '\n' + [...desiredIps].map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
+                 
+                 if (match) {
+                     content = content.replace(ipRegex, newBlock + '\n');
+                 } else {
+                     // Append if missing
+                     if (!content.includes('allowed-ips:')) {
+                         content += `\n${newBlock}\n`;
+                     }
                  }
+                 changed = true;
+                 this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs', level: 'info' });
              }
         }
 
