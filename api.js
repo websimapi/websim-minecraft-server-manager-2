@@ -118,7 +118,6 @@ export function saveSettings() {
     };
 
     sendWebSocketMessage({ type: 'settings', settings });
-    ui.showToast('Settings saved. A server restart is required for changes to take effect.', 'info');
 }
 
 export function forceKillServer() {

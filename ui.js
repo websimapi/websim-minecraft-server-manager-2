@@ -46,7 +46,16 @@ function bindEventListeners() {
     document.getElementById('uploadFileBtn').addEventListener('click', () => document.getElementById('fileUpload').click());
     document.getElementById('fileUpload').addEventListener('change', (e) => apiHandler.uploadFile(e.target.files[0]));
 
-    document.getElementById('saveSettingsBtn').addEventListener('click', () => apiHandler.saveSettings());
+    const settingsIds = [
+        'serverTypeSelect', 'minecraftVersionInput', 'maxPlayersInput', 
+        'portInput', 'ramInput', 'autoStartCheck', 'enableGeyserCheck', 
+        'autoUpdateGeyserCheck', 'enableFloodgateCheck', 'enableViaVersionCheck'
+    ];
+    settingsIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => apiHandler.saveSettings());
+    });
+
     document.getElementById('downloadBridgeBtn').addEventListener('click', () => apiHandler.downloadBridge());
     document.getElementById('updateBridgeBtn').addEventListener('click', () => apiHandler.updateBridge());
     document.getElementById('forceKillBtn').addEventListener('click', () => apiHandler.forceKillServer());
