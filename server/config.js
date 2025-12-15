@@ -21,11 +21,11 @@ let serverConfig = {
     /* @tweakable Automatically update Geyser/Floodgate on server start to match server version */
     autoUpdateGeyser: false,
     /* @tweakable Geyser Authentication Type (online, floodgate, offline) */
-    geyserAuthType: 'floodgate',
+    geyserAuthType: 'offline',
     /* @tweakable Enable Floodgate to allow Bedrock clients without a Java account */
-    enableFloodgate: false,
+    enableFloodgate: true,
     /* @tweakable Floodgate allowed IPs (offline bypass) */
-    floodgateAllowedIps: ['192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12'],
+    floodgateAllowedIps: ['192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12', '127.0.0.1'],
     /* @tweakable Enable ViaVersion to allow older/newer client connections */
     enableViaVersion: false
 };

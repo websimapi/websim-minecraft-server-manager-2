@@ -58,7 +58,16 @@ module.exports.start = async function() {
     this.broadcast({ type: 'notification', message: 'Server started successfully', level: 'success' });
 
     if (this.config.enableGeyser) {
-        setTimeout(() => this.configureGeyser(), 5000);
+        // Wait for Geyser to generate files, then configure and reload if needed
+        setTimeout(() => {
+            const geyserChanged = this.configureGeyser();
+            const floodgateChanged = this.config.enableFloodgate ? this.configureFloodgate() : false;
+            
+            if ((geyserChanged || floodgateChanged) && this.serverStatus === 'online') {
+                this.broadcast({ type: 'notification', message: 'Detected Geyser config generation. Applying settings and reloading...', level: 'info' });
+                this.sendCommand('geyser reload');
+            }
+        }, 15000);
     }
 
     // Monitor memory usage periodically

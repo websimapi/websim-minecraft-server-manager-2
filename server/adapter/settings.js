@@ -84,7 +84,7 @@ module.exports.updateServerProperties = function(settings) {
 };
 
 module.exports.configureGeyser = function() {
-    if (!this.config.enableGeyser) return;
+    if (!this.config.enableGeyser) return false;
 
     const possiblePaths = [
         path.join(this.config.minecraftDir, 'plugins', 'Geyser-Spigot', 'config.yml'),
@@ -94,8 +94,8 @@ module.exports.configureGeyser = function() {
     const geyserConfigPath = possiblePaths.find(p => fs.existsSync(p));
 
     if (!geyserConfigPath) {
-        this.broadcast({ type: 'notification', message: 'Geyser config not found. Waiting for it to be generated.', level: 'warning' });
-        return;
+        this.broadcast({ type: 'notification', message: 'Geyser config not found (yet). Skipping auto-configuration.', level: 'warning' });
+        return false;
     }
 
     try {
@@ -121,14 +121,14 @@ module.exports.configureGeyser = function() {
         }
 
         // Robust Regex: Look for 'remote:' block, then 'auth-type:' inside it.
-        // This handles cases where auth-type might be elsewhere (unlikely) or indented differently.
-        // The regex captures "remote:" ... "auth-type: " ... "currentValue"
         const remoteBlockRegex = /(remote:[\s\S]*?auth-type:\s*)(['"]?)(\w+)(['"]?)/;
         const match = configContent.match(remoteBlockRegex);
 
         if (match) {
             const currentAuth = match[3];
             if (currentAuth !== desiredAuthType) {
+                // We use '$1' + desiredAuthType to preserve indentation and keys, replacing the value. 
+                // We intentionally drop the quotes (groups 2 and 4) from replacement to ensure clean value.
                 configContent = configContent.replace(remoteBlockRegex, `$1${desiredAuthType}`);
                 changed = true;
                 this.broadcast({ type: 'notification', message: `Updated Geyser auth-type to: ${desiredAuthType}`, level: 'info' });
@@ -148,14 +148,16 @@ module.exports.configureGeyser = function() {
             fs.writeFileSync(geyserConfigPath, configContent, 'utf8');
             this.broadcast({ type: 'notification', message: 'Geyser configuration updated.', level: 'success' });
         }
+        return changed;
     } catch (error) {
         console.error(`Failed to configure Geyser: ${error}`);
         this.broadcast({ type: 'error', message: `Failed to auto-configure Geyser: ${error.message}` });
+        return false;
     }
 };
 
 module.exports.configureFloodgate = function() {
-    if (!this.config.enableFloodgate) return;
+    if (!this.config.enableFloodgate) return false;
 
     const possiblePaths = [
         path.join(this.config.minecraftDir, 'plugins', 'floodgate', 'config.yml'),
@@ -163,15 +165,13 @@ module.exports.configureFloodgate = function() {
     ];
 
     const configPath = possiblePaths.find(p => fs.existsSync(p));
-    if (!configPath) return;
+    if (!configPath) return false;
 
     try {
         let content = fs.readFileSync(configPath, 'utf8');
         let changed = false;
 
         // 1. Ensure player-link enable is false for offline/floodgate setup by default
-        // Regex looks for "player-link:" section then "enable: true"
-        // Uses [\s\S]*? for non-greedy multiline match
         const playerLinkRegex = /(player-link:[\s\S]*?enable:\s*)(true|false)/;
         const plMatch = content.match(playerLinkRegex);
         if (plMatch && plMatch[2] === 'true') {
@@ -181,7 +181,6 @@ module.exports.configureFloodgate = function() {
         }
 
         // 2. Ensure disconnect invalid-key is false
-        // Regex looks for "disconnect:" section then "invalid-key: true"
         const invalidKeyRegex = /(disconnect:[\s\S]*?invalid-key:\s*)(true|false)/;
         const ikMatch = content.match(invalidKeyRegex);
         if (ikMatch && ikMatch[2] === 'true') {
@@ -193,9 +192,6 @@ module.exports.configureFloodgate = function() {
         // 3. Update Allowed IPs for offline access
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
              const ips = this.config.floodgateAllowedIps;
-             // Regex strategy: find the allowed-ips block. 
-             // It typically starts with "allowed-ips:" and either has [] or a list.
-             // We look for the key at the start of a line or file
              const blockMatch = content.match(/^allowed-ips:(?:\s*\[\]|\s*\n(?:\s+-.*)+|.*)/m);
              
              if (blockMatch) {
@@ -215,8 +211,10 @@ module.exports.configureFloodgate = function() {
             fs.writeFileSync(configPath, content, 'utf8');
             this.broadcast({ type: 'notification', message: 'Floodgate configuration updated.', level: 'success' });
         }
+        return changed;
     } catch (error) {
         console.error(`Failed to configure Floodgate: ${error}`);
+        return false;
     }
 };
 
