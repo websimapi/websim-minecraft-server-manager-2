@@ -45,9 +45,29 @@ module.exports.updateServerProperties = function(settings) {
     const serverPropsPath = path.join(this.config.minecraftDir, 'server.properties');
     if (fs.existsSync(serverPropsPath)) {
         let content = fs.readFileSync(serverPropsPath, 'utf8');
-        if (settings.mcPort)     content = content.replace(/server-port=\d*/, `server-port=${settings.mcPort}`);
-        if (settings.maxPlayers) content = content.replace(/max-players=\d*/, `max-players=${settings.maxPlayers}`);
-        fs.writeFileSync(serverPropsPath, content);
+        let changed = false;
+
+        if (settings.mcPort) {
+            content = content.replace(/server-port=\d*/, `server-port=${settings.mcPort}`);
+            changed = true;
+        }
+        if (settings.maxPlayers) {
+            content = content.replace(/max-players=\d*/, `max-players=${settings.maxPlayers}`);
+            changed = true;
+        }
+        
+        // If Floodgate is enabled, ensure server is in offline mode to allow 'offline' auth-type from Geyser to work
+        // without authentication errors from the Java server.
+        if (this.config.enableFloodgate) {
+            if (content.includes('online-mode=true')) {
+                content = content.replace('online-mode=true', 'online-mode=false');
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            fs.writeFileSync(serverPropsPath, content);
+        }
     }
 };
 
@@ -80,9 +100,10 @@ module.exports.configureGeyser = function() {
         
         if (match) {
             const currentAuthType = match[3];
-            // If Floodgate is enabled, we MUST use 'floodgate' auth type to prevent Xbox login requirement.
-            // If disabled, we default back to 'online'.
-            const desiredAuthType = this.config.enableFloodgate ? 'floodgate' : 'online';
+            // If Floodgate is enabled, we set 'offline' to bypass Xbox login as requested.
+            // Normally 'floodgate' is used, but that enforces Xbox login.
+            // 'offline' allows Bedrock clients to join without signing into Xbox.
+            const desiredAuthType = this.config.enableFloodgate ? 'offline' : 'online';
             
             if (currentAuthType !== desiredAuthType) {
                 configContent = configContent.replace(authTypeRegex, `$1${desiredAuthType}`);
