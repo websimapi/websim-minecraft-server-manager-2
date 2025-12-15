@@ -39,6 +39,15 @@ module.exports.start = async function() {
     }
 
     console.log('Starting Minecraft server...');
+    
+    // Attempt to apply settings to existing configuration files BEFORE spawn
+    // This ensures that valid configs (like allowed-ips) are in place on boot
+    try {
+        this.applySettingsToFiles();
+    } catch (e) {
+        console.error('Failed to apply settings pre-start:', e);
+    }
+
     // Ensure no previous process is lingering
     if (this.minecraftProcess) {
         this.killChildProcess();

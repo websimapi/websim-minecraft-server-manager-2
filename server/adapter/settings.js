@@ -212,7 +212,7 @@ module.exports.configureFloodgate = function() {
         updateRegex(/^(replace-spaces:\s*)(true|false)/m, '$1true', 'Set Floodgate replace-spaces to true');
 
         // 1. Ensure player-link enabled is TRUE
-        updateRegex(/(player-link:[\s\S]*?enable(?:d)?:\s*)(true|false)/, '$1true', 'Enabled Floodgate player-link');
+        updateRegex(/(player-link:[\s\S]*?enabled?:\s*)(true|false)/, '$1true', 'Enabled Floodgate player-link');
 
         // 2. Ensure require-link is TRUE (Enforce auth for external, bypass for allowed-ips)
         updateRegex(/(player-link:[\s\S]*?require-link:\s*)(true|false)/, '$1true', 'Enabled Floodgate require-link (Auth required for non-LAN)');
@@ -220,6 +220,7 @@ module.exports.configureFloodgate = function() {
         // 3. Update Allowed IPs for offline access
         if (this.config.floodgateAllowedIps && Array.isArray(this.config.floodgateAllowedIps)) {
              const ips = this.config.floodgateAllowedIps;
+             // Ensure robust YAML formatting for list
              const newBlock = `allowed-ips:${ips.length > 0 ? '\n' + ips.map(ip => `  - "${ip}"`).join('\n') : ' []'}`;
              
              // Robust regex to match the allowed-ips block until the next root key
@@ -234,12 +235,18 @@ module.exports.configureFloodgate = function() {
                      this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs whitelist', level: 'info' });
                  }
              } else {
-                 // Fallback if regex fails (unlikely)
-                 const simpleRegex = /^allowed-ips:.*$/m;
-                 if (simpleRegex.test(content)) {
-                     content = content.replace(simpleRegex, newBlock);
+                 // Missing block logic - Insert it explicitly
+                 const insertMarker = 'disconnect:';
+                 if (content.includes(insertMarker)) {
+                     // Insert before disconnect
+                     content = content.replace(insertMarker, `${newBlock}\n\n${insertMarker}`);
                      changed = true;
-                     this.broadcast({ type: 'notification', message: 'Updated Floodgate Allowed IPs', level: 'info' });
+                     this.broadcast({ type: 'notification', message: 'Inserted Floodgate Allowed IPs whitelist', level: 'info' });
+                 } else {
+                     // Fallback: Append to end if 'disconnect:' key missing
+                     content += `\n${newBlock}\n`;
+                     changed = true;
+                     this.broadcast({ type: 'notification', message: 'Appended Floodgate Allowed IPs whitelist', level: 'info' });
                  }
              }
         }
